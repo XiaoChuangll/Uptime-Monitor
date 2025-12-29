@@ -103,7 +103,7 @@ node server/index.cjs
 │   ├── services/        # API 服务封装
 │   ├── stores/          # Pinia 状态管理
 │   └── views/           # 页面视图
-├── .env                 # 环境变量 (私密，勿提交)
+├── .env                 # 环境变量
 ├── .env.example         # 环境变量示例
 └── package.json         # 项目配置
 ```
