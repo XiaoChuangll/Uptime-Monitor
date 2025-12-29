@@ -1,0 +1,29 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--el-bg-color-page);
+  color: var(--el-text-color-primary);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+/* Remove blue focus outline/rectangle */
+button:focus,
+button:focus-visible,
+.el-button:focus,
+.el-button:focus-visible {
+  outline: none !important;
+}
+
+/* Remove mobile tap highlight color */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Lower z-index for announcement guide tooltip so it goes under the header */
+.el-popper.header-covered-tooltip {
+  z-index: 900 !important;
+}
