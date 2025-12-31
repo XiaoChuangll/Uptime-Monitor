@@ -114,6 +114,7 @@ import { ref, onMounted, computed, onUnmounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useRouter } from 'vue-router';
 import { getChangelogs, createChangelog, updateChangelog, deleteChangelog } from '../../services/admin';
+import { onWS } from '../../services/ws';
 import type { Changelog } from '../../services/api';
 import MarkdownIt from 'markdown-it';
 import 'github-markdown-css';
@@ -140,7 +141,16 @@ const markdownPreview = computed(() => md.render(contentMarkdown.value || ''));
 
 const isMobile = ref(false);
 const updateIsMobile = () => { isMobile.value = window.innerWidth <= 768; };
-onMounted(() => { updateIsMobile(); window.addEventListener('resize', updateIsMobile); });
+onMounted(() => { 
+  updateIsMobile(); 
+  window.addEventListener('resize', updateIsMobile);
+  
+  onWS((type, payload) => {
+    if (type === 'changelogs:update') {
+      items.value = payload;
+    }
+  });
+});
 onUnmounted(() => { window.removeEventListener('resize', updateIsMobile); });
 
 const fetchList = async () => {

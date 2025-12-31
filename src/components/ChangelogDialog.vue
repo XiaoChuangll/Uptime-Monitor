@@ -38,6 +38,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { Calendar } from '@element-plus/icons-vue';
 import { getPublicChangelogs, type Changelog } from '../services/api';
+import { onWS } from '../services/ws';
 import 'github-markdown-css';
 
 const props = defineProps<{
@@ -60,7 +61,12 @@ const updateIsMobile = () => { isMobile.value = window.innerWidth <= 768; };
 const fetchList = async () => {
   items.value = await getPublicChangelogs();
   if (items.value.length > 0) {
-    activeNames.value = [items.value[0].id];
+    // If user hasn't interacted, maybe we don't force expand first item every time it updates?
+    // But original code did: activeNames.value = [items.value[0].id];
+    // Let's keep it if list was empty, or just update data silently if list exists.
+    if (activeNames.value.length === 0) {
+      activeNames.value = [items.value[0].id];
+    }
   }
 };
 
@@ -73,6 +79,14 @@ watch(visible, (val) => {
 onMounted(() => {
   updateIsMobile();
   window.addEventListener('resize', updateIsMobile);
+  
+  onWS((type, payload) => {
+    if (type === 'changelogs:update') {
+      items.value = payload;
+      // Optional: if currently visible, maybe show a toast or highlight? 
+      // For now just update the list.
+    }
+  });
 });
 
 onUnmounted(() => {

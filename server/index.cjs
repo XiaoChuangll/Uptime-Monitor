@@ -758,6 +758,9 @@ app.post('/api/changelogs', requireAuth, (req, res) => {
     function(err){
       if (err) return res.status(500).json({ error: err.message });
       logAction(req.user?.username, 'create', 'changelogs', this.lastID, { version });
+      db.all(`SELECT * FROM changelogs ORDER BY release_date DESC, created_at DESC`, [], (e2, rows) => {
+        if (!e2) broadcast('changelogs:update', rows);
+      });
       res.json({ id: this.lastID });
     }
   );
@@ -772,6 +775,9 @@ app.put('/api/changelogs/:id', requireAuth, (req, res) => {
     function(err){
       if (err) return res.status(500).json({ error: err.message });
       logAction(req.user?.username, 'update', 'changelogs', id, { version });
+      db.all(`SELECT * FROM changelogs ORDER BY release_date DESC, created_at DESC`, [], (e2, rows) => {
+        if (!e2) broadcast('changelogs:update', rows);
+      });
       res.json({ changed: this.changes });
     }
   );
@@ -782,6 +788,9 @@ app.delete('/api/changelogs/:id', requireAuth, (req, res) => {
   db.run(`DELETE FROM changelogs WHERE id=?`, [id], function(err){
     if (err) return res.status(500).json({ error: err.message });
     logAction(req.user?.username, 'delete', 'changelogs', id);
+    db.all(`SELECT * FROM changelogs ORDER BY release_date DESC, created_at DESC`, [], (e2, rows) => {
+      if (!e2) broadcast('changelogs:update', rows);
+    });
     res.json({ deleted: this.changes });
   });
 });
