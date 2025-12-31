@@ -6,8 +6,12 @@
       </template>
     </el-page-header>
 
-    <el-card class="about-card mb-4" v-if="aboutData.content_html">
-      <div class="about-content ql-editor" v-html="aboutData.content_html"></div>
+    <el-card class="about-card mb-4" v-if="showContent">
+      <div 
+        class="about-content" 
+        :class="{ 'ql-editor': !aboutData.content_markdown, 'markdown-body': !!aboutData.content_markdown }"
+        v-html="aboutData.content_html"
+      ></div>
     </el-card>
 
     <el-card class="about-card mb-4">
@@ -108,12 +112,13 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
-import { onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref, computed } from 'vue';
 import { useLayoutStore } from '../stores/layout';
 import { Link, ArrowRight, StarFilled } from '@element-plus/icons-vue';
 import { getAboutPage, type AboutPageData } from '../services/api';
 import axios from 'axios';
 import '@vueup/vue-quill/dist/vue-quill.snow.css'; // Import Quill styles for content rendering
+import 'github-markdown-css/github-markdown.css';
 
 const router = useRouter();
 const layoutStore = useLayoutStore();
@@ -122,6 +127,20 @@ const commits = ref<any[]>([]);
 const commitsLoading = ref(false);
 const commitsExpanded = ref(false);
 const repoStars = ref<number | null>(null);
+
+const showContent = computed(() => {
+  const html = aboutData.value.content_html;
+  if (!html) return false;
+  // Check for common empty states
+  if (html === '<p><br></p>') return false;
+  // Check if it contains only whitespace tags
+  const text = html.replace(/<[^>]*>/g, '').trim();
+  // If text is empty, check for images or iframes
+  if (!text && !html.includes('<img') && !html.includes('<iframe') && !html.includes('<video')) {
+    return false;
+  }
+  return true;
+});
 
 const goBack = () => {
   router.push('/');
@@ -273,8 +292,13 @@ onUnmounted(() => {
   border-radius: 12px;
 }
 .about-content {
-  padding: 20px;
   line-height: 1.6;
+}
+.about-content.ql-editor,
+.about-content.markdown-body {
+  padding: 0;
+  overflow-y: visible;
+  height: auto;
 }
 .card-header {
   font-weight: 600;
@@ -437,5 +461,101 @@ li {
 .star-link:hover {
   opacity: 0.8;
   text-decoration: none;
+}
+
+/* Dark Mode & Theme Adaptation */
+.about-content {
+  color: var(--el-text-color-primary);
+}
+
+/* Markdown Adaptation */
+.markdown-body {
+  background-color: transparent !important;
+  color: var(--el-text-color-primary) !important;
+}
+
+:deep(.markdown-body) {
+  /* Variable mapping for github-markdown-css */
+  --color-canvas-default: transparent;
+  --color-fg-default: var(--el-text-color-primary);
+  --color-fg-muted: var(--el-text-color-secondary);
+  --color-accent-fg: var(--el-color-primary);
+  --color-canvas-subtle: var(--el-fill-color-light);
+  --color-border-default: var(--el-border-color);
+  --color-border-muted: var(--el-border-color-lighter);
+  --color-neutral-muted: var(--el-fill-color-lighter);
+}
+
+:deep(.markdown-body a) {
+  color: var(--el-color-primary) !important;
+}
+
+:deep(.markdown-body h1),
+:deep(.markdown-body h2),
+:deep(.markdown-body h3),
+:deep(.markdown-body h4),
+:deep(.markdown-body h5),
+:deep(.markdown-body h6) {
+  color: var(--el-text-color-primary) !important;
+  border-bottom-color: var(--el-border-color-lighter) !important;
+}
+
+:deep(.markdown-body blockquote) {
+  color: var(--el-text-color-secondary) !important;
+  border-left-color: var(--el-border-color) !important;
+}
+
+:deep(.markdown-body table tr) {
+  background-color: transparent !important;
+  border-top-color: var(--el-border-color-lighter) !important;
+}
+
+:deep(.markdown-body table tr:nth-child(2n)) {
+  background-color: var(--el-fill-color-lighter) !important;
+}
+
+:deep(.markdown-body code),
+:deep(.markdown-body tt) {
+  background-color: var(--el-fill-color-light) !important;
+  border-radius: 4px;
+}
+
+:deep(.markdown-body pre) {
+  background-color: var(--el-fill-color-light) !important;
+}
+
+/* Quill Editor Adaptation */
+.ql-editor {
+  color: var(--el-text-color-primary) !important;
+  background-color: transparent;
+}
+
+:deep(.ql-editor p),
+:deep(.ql-editor ol),
+:deep(.ql-editor ul),
+:deep(.ql-editor pre),
+:deep(.ql-editor blockquote),
+:deep(.ql-editor h1),
+:deep(.ql-editor h2),
+:deep(.ql-editor h3),
+:deep(.ql-editor h4),
+:deep(.ql-editor h5),
+:deep(.ql-editor h6) {
+  color: var(--el-text-color-primary) !important;
+}
+
+:deep(.ql-editor a) {
+  color: var(--el-color-primary) !important;
+}
+
+:deep(.ql-editor blockquote) {
+  border-left-color: var(--el-border-color) !important;
+  color: var(--el-text-color-secondary) !important;
+}
+
+:deep(.ql-editor code),
+:deep(.ql-editor pre) {
+  background-color: var(--el-fill-color-light) !important;
+  color: var(--el-text-color-primary) !important;
 }
 </style>

@@ -1,6 +1,6 @@
 <template>
   <div class="about-manage-view">
-    <el-page-header @back="goBack" class="mb-4">
+    <el-page-header v-if="!embedded" @back="goBack" class="mb-4">
       <template #content>
         <span class="text-large font-600 mr-3"> 关于页面管理 </span>
       </template>
