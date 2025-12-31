@@ -1,5 +1,18 @@
 # 更新日志 (Changelog)
 
+## [2025-12-31]
+
+### 📚 文档与开源 (Docs & Open Source)
+- **开源仓库初始化**:
+  - 初始化 Git 仓库并关联远程 GitHub 仓库 (XiaoChuangll/Uptime-Monitor)。
+  - 处理 `nginx` 配置中的敏感信息（脱敏域名、IP、路径及证书）。
+  - 创建 `.gitignore` 排除敏感文件（.env, 数据库, 密钥等）。
+  - 添加 `LICENSE` 文件并配置 Apache License 2.0 协议。
+- **文档体系建设**:
+  - 新增 `README.md` 部署文档，包含环境要求、安装步骤、环境变量配置及二次开发指南。
+  - 创建 `.env.example` 环境变量示例文件。
+  - 重构 `系统说明.md`，精简为核心功能介绍与后台管理概述，作为系统关于文档。
+
 ## [2025-12-25]
 
 ### ✨ 新增功能 (Features)
