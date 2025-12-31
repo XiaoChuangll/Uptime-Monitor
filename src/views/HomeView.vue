@@ -75,7 +75,13 @@
                 <div class="accent-bar" :class="getCardStyle(card).accent || 'bg-yellow'"></div>
                 <h3 class="card-title">{{ card.title }}</h3>
               </div>
-              <div class="card-content hover-effect">
+              <div class="apps-container" v-if="apps.length > 0">
+                <div v-for="app in apps" :key="app.id" class="app-mini-item">
+                  <img v-if="appIcon(app)" :src="appIcon(app)" class="app-mini-icon" :alt="app.name" :title="app.name" />
+                  <el-icon v-else :size="24" class="app-icon-fallback" :title="app.name"><Monitor /></el-icon>
+                </div>
+              </div>
+              <div class="card-content hover-effect" v-else>
                 <el-icon class="card-icon" :size="24"><Monitor /></el-icon>
                 <span class="card-text">应用列表</span>
               </div>
@@ -191,7 +197,7 @@ import { useRouter } from 'vue-router';
 import { useMonitorStore } from '../stores/monitor';
 import MonitorCard from '../components/MonitorCard.vue';
 import { Refresh, Filter, CaretBottom, Monitor, User, Setting, More } from '@element-plus/icons-vue';
-import { getPublicFriendLinks, getPublicGroupChats, getPublicAnnouncements, getPublicSiteCards, type FriendLink, type SiteCard } from '../services/admin';
+import { getPublicFriendLinks, getPublicGroupChats, getPublicAnnouncements, getPublicSiteCards, getPublicApps, type FriendLink, type SiteCard, type AppItem } from '../services/admin';
 import { connectWS, onWS } from '../services/ws';
 import { useAuthStore } from '../stores/auth';
 
@@ -202,6 +208,7 @@ const isAdmin = computed(() => auth.isLoggedIn());
 const activeLogsId = ref<number | null>(null);
 
 const siteCards = ref<SiteCard[]>([]);
+const apps = ref<AppItem[]>([]);
 
 const sortedCards = computed(() => {
   return [...siteCards.value].sort((a, b) => a.sort_order - b.sort_order);
@@ -314,6 +321,20 @@ const linkIcon = (link: FriendLink) => {
   return u || favicon(link.url);
 };
 
+const appIcon = (item: any) => {
+  if (item.icon_url) return item.icon_url;
+  const direct = (item as any).icon || (item as any).logo;
+  if (direct) return direct;
+  const link = (item as any).url || (item as any).link || (item as any).homepage;
+  if (!link) return null;
+  try {
+    const u = new URL(link);
+    return `${u.origin}/favicon.ico`;
+  } catch {
+    return null;
+  }
+};
+
 const filter = ref<'all' | 'up' | 'warn' | 'down'>('all');
 
 const filteredMonitors = computed(() => {
@@ -357,16 +378,18 @@ onMounted(async () => {
   document.addEventListener('click', handleGlobalClick);
   store.fetchMonitors();
   try {
-    const [links, groups, anns, cards] = await Promise.all([
+    const [links, groups, anns, cards, appList] = await Promise.all([
       getPublicFriendLinks(),
       getPublicGroupChats(),
       getPublicAnnouncements(),
-      getPublicSiteCards()
+      getPublicSiteCards(),
+      getPublicApps()
     ]);
     friendLinks.value = links;
     groupChats.value = groups;
     announcements.value = anns;
     siteCards.value = cards;
+    apps.value = appList;
     
     // Cache announcements
     if (anns.length > 0) {
@@ -468,6 +491,43 @@ const goAdmin = () => router.push({ name: 'admin' });
 .link-card :deep(.el-empty__image) { width: 48px; height: 48px; }
 .link-card :deep(.el-empty__description) { margin-top: 6px; }
 .link-card :deep(.el-empty__description p) { font-size: 12px; }
+
+.apps-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.app-mini-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-mini-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  object-fit: contain;
+  transition: transform 0.2s;
+  background-color: var(--el-fill-color-light);
+}
+
+.app-mini-icon:hover {
+  transform: scale(1.1);
+}
+
+.app-icon-fallback {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--el-fill-color-light);
+  border-radius: 8px;
+  color: var(--el-text-color-secondary);
+}
 
 .mb-4 {
   margin-bottom: 20px;

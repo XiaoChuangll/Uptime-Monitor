@@ -28,6 +28,11 @@
             </el-form-item>
           </el-col>
           <el-col :md="12" :xs="24">
+            <el-form-item label="仓库路径">
+              <el-input v-model="form.github_repo" placeholder="owner/repo (e.g. vuejs/core)" />
+            </el-form-item>
+          </el-col>
+          <el-col :md="12" :xs="24">
             <el-form-item label="作者头像">
               <div class="avatar-uploader">
                 <el-input v-model="form.author_avatar" placeholder="Image URL" class="mb-2">
@@ -128,6 +133,7 @@ const form = ref<AboutPageData>({
   author_name: '',
   author_avatar: '',
   author_github: '',
+  github_repo: '',
   content_html: '',
   content_markdown: ''
 });
@@ -217,6 +223,20 @@ const handleUpload = async (options: any) => {
 const save = async () => {
   saving.value = true;
   try {
+    // Clean up github_repo
+    if (form.value.github_repo) {
+      let repo = form.value.github_repo.trim();
+      try {
+        const urlObj = new URL(repo);
+        if (urlObj.hostname === 'github.com') {
+          repo = urlObj.pathname.substring(1);
+        }
+      } catch (e) {
+        // Not a URL
+      }
+      form.value.github_repo = repo.replace(/\.git$/, '');
+    }
+
     if (markdownMode.value) {
       form.value.content_markdown = contentMarkdown.value;
       form.value.content_html = md.render(contentMarkdown.value || '');

@@ -194,6 +194,7 @@ export interface AboutPageData {
   author_name?: string;
   author_avatar?: string;
   author_github?: string;
+  github_repo?: string;
   version?: string;
   updated_at?: string;
 }

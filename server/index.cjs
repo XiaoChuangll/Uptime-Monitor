@@ -884,10 +884,10 @@ app.get('/api/about', (req, res) => {
 });
 
 app.put('/api/about', requireAuth, (req, res) => {
-  const { content_html, content_markdown, author_name, author_avatar, author_github, version } = req.body;
+  const { content_html, content_markdown, author_name, author_avatar, author_github, github_repo, version } = req.body;
   db.run(
-    `UPDATE about_page SET content_html=?, content_markdown=?, author_name=?, author_avatar=?, author_github=?, version=?, updated_at=CURRENT_TIMESTAMP WHERE id=1`,
-    [content_html, content_markdown, author_name, author_avatar, author_github, version],
+    `UPDATE about_page SET content_html=?, content_markdown=?, author_name=?, author_avatar=?, author_github=?, github_repo=?, version=?, updated_at=CURRENT_TIMESTAMP WHERE id=1`,
+    [content_html, content_markdown, author_name, author_avatar, author_github, github_repo, version],
     function(err) {
       if (err) return res.status(500).json({ error: err.message });
       logAction(req.user?.username, 'update', 'about_page', 1);

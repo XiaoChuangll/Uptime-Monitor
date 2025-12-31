@@ -151,6 +151,7 @@ db.serialize(() => {
     author_name TEXT,
     author_avatar TEXT,
     author_github TEXT,
+    github_repo TEXT,
     version TEXT,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
@@ -177,6 +178,10 @@ db.serialize(() => {
   ensureColumn('announcements', 'updated_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP');
   ensureColumn('group_chats', 'enabled', 'INTEGER DEFAULT 1');
   ensureColumn('apps', 'icon_url', 'TEXT');
+  ensureColumn('about_page', 'github_repo', 'TEXT');
+  ensureColumn('about_page', 'author_avatar', 'TEXT');
+  ensureColumn('about_page', 'author_github', 'TEXT');
+  ensureColumn('about_page', 'content_markdown', 'TEXT');
 });
 
 module.exports = db;
