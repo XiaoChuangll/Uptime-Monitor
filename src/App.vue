@@ -2,7 +2,7 @@
 import { useThemeStore } from './stores/theme';
 import { useAuthStore } from './stores/auth';
 import { useLayoutStore } from './stores/layout';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { Moon, Sunny, Monitor, ArrowLeft, Notebook } from '@element-plus/icons-vue';
 import { ref, onMounted, onUnmounted } from 'vue';
 import { getVisitorStats } from './services/api';
@@ -13,6 +13,7 @@ const themeStore = useThemeStore();
 const auth = useAuthStore();
 const layoutStore = useLayoutStore();
 const router = useRouter();
+const route = useRoute();
 const goLogin = () => router.push({ name: 'login' });
 const logout = () => auth.logout();
 
@@ -82,7 +83,7 @@ onUnmounted(() => {
           实时访客 {{ visitorCount }}
         </span>
         <div class="spacer"></div>
-        <el-button link @click="router.push({ name: 'about' })" class="mr-2">关于</el-button>
+        <el-button v-if="route.name !== 'about'" link @click="router.push({ name: 'about' })" class="mr-2">关于</el-button>
         <el-button v-if="!auth.isLoggedIn()" type="primary" @click="goLogin">登录</el-button>
         <el-button v-else type="danger" @click="logout">退出登录</el-button>
       </div>
