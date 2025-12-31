@@ -58,13 +58,16 @@
         </div>
       </template>
       <div class="tech-stack">
-        <el-tag effect="plain" class="mr-2 mb-2">Vue 3</el-tag>
-        <el-tag effect="plain" class="mr-2 mb-2">TypeScript</el-tag>
-        <el-tag effect="plain" class="mr-2 mb-2">Vite</el-tag>
-        <el-tag effect="plain" class="mr-2 mb-2">Element Plus</el-tag>
-        <el-tag effect="plain" class="mr-2 mb-2">Pinia</el-tag>
-        <el-tag effect="plain" class="mr-2 mb-2">Vue Router</el-tag>
-        <el-tag effect="plain" class="mr-2 mb-2">ECharts</el-tag>
+        <el-tag 
+          v-for="tech in techStack" 
+          :key="tech.name"
+          :type="tech.type"
+          effect="light"
+          class="tech-tag"
+          size="large"
+        >
+          {{ tech.name }}
+        </el-tag>
       </div>
     </el-card>
 
@@ -127,6 +130,19 @@ const commits = ref<any[]>([]);
 const commitsLoading = ref(false);
 const commitsExpanded = ref(false);
 const repoStars = ref<number | null>(null);
+
+const techStack = [
+  { name: 'Vue 3', type: 'success' },
+  { name: 'TypeScript', type: 'primary' },
+  { name: 'Vite', type: 'warning' },
+  { name: 'Element Plus', type: 'primary' },
+  { name: 'Pinia', type: 'warning' },
+  { name: 'Vue Router', type: 'success' },
+  { name: 'ECharts', type: 'danger' },
+  { name: 'Node.js', type: 'success' },
+  { name: 'Express', type: 'info' },
+  { name: 'SQLite', type: 'info' }
+] as const;
 
 const showContent = computed(() => {
   const html = aboutData.value.content_html;
@@ -405,6 +421,21 @@ onUnmounted(() => {
 }
 .tech-stack {
   padding: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.tech-tag {
+  flex-grow: 1;
+  justify-content: center;
+  transition: all 0.3s ease;
+  cursor: default;
+  border: none;
+  font-weight: 500;
+}
+.tech-tag:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 .mr-2 { margin-right: 12px; }
 .mb-2 { margin-bottom: 12px; }
