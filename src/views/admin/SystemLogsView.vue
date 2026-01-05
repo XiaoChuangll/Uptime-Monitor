@@ -52,6 +52,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { getSystemLogs, deleteSystemLogs, type SystemLog } from '../../services/admin';
+import { onWS } from '../../services/ws';
 import { Delete } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 
@@ -150,6 +151,25 @@ const goBack = () => {
 
 onMounted(() => {
   fetchList();
+  onWS((msg: any) => {
+    if (msg.type === 'logs:new') {
+      // If we are on the first page, prepend the new log or refresh
+      // Prepending is smoother
+      if (page.value === 1) {
+        items.value.unshift(msg.payload);
+        total.value++;
+        if (items.value.length > pageSize.value) {
+          items.value.pop();
+        }
+      } else {
+        // Just increment total so user knows there are new logs? 
+        // Or do nothing, or maybe show a "New logs available" badge.
+        // For simplicity, let's just update total if we could, but fetching total requires API.
+        // We can just set a flag or let it be.
+        // If user navigates to page 1, fetchList will run.
+      }
+    }
+  });
 });
 </script>
 

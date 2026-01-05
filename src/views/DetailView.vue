@@ -41,6 +41,24 @@
               <span class="label">运行时间</span>
               <span class="value">{{ runningTime }}</span>
             </div>
+            
+            <template v-if="monitor.ssl && monitor.ssl.expires">
+              <el-divider content-position="left">SSL 证书信息</el-divider>
+              <div class="info-item">
+                <span class="label">颁发机构</span>
+                <span class="value">{{ monitor.ssl.brand || '未知' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">过期时间</span>
+                <span class="value">{{ formatSSLDate(monitor.ssl.expires) }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">证书状态</span>
+                <el-tag :type="getSSLStatusType(monitor.ssl.expires)" size="small">
+                  剩余 {{ getSSLDaysRemaining(monitor.ssl.expires) }} 天
+                </el-tag>
+              </div>
+            </template>
           </div>
         </el-card>
       </el-col>
@@ -760,6 +778,24 @@ const recentLogs = computed(() => {
 const formatLogDate = (ts: number) => {
   const date = new Date(ts * 1000);
   return date.toLocaleString();
+};
+
+const formatSSLDate = (ts: number) => {
+  const date = new Date(ts * 1000);
+  return date.toLocaleDateString();
+};
+
+const getSSLDaysRemaining = (ts: number) => {
+  const now = Date.now() / 1000;
+  const diff = ts - now;
+  return Math.ceil(diff / (24 * 3600));
+};
+
+const getSSLStatusType = (ts: number) => {
+  const days = getSSLDaysRemaining(ts);
+  if (days > 30) return 'success';
+  if (days > 7) return 'warning';
+  return 'danger';
 };
 
 const getLogReason = (log: any) => {

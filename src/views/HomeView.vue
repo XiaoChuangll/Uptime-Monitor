@@ -187,11 +187,9 @@ import MonitorCard from '../components/MonitorCard.vue';
 import { Refresh, Filter, CaretBottom, Monitor, User, More } from '@element-plus/icons-vue';
 import { getPublicFriendLinks, getPublicGroupChats, getPublicAnnouncements, getPublicSiteCards, getPublicApps, type FriendLink, type SiteCard, type AppItem } from '../services/admin';
 import { connectWS, onWS } from '../services/ws';
-import { useAuthStore } from '../stores/auth';
 
 const store = useMonitorStore();
 const router = useRouter();
-const auth = useAuthStore();
 const activeLogsId = ref<number | null>(null);
 
 const siteCards = ref<SiteCard[]>([]);

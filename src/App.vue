@@ -70,7 +70,7 @@ onUnmounted(() => {
       </transition>
       
       <div class="actions">
-        <el-button v-if="auth.isLoggedIn() && !route.path.startsWith('/admin')" :icon="Setting" circle @click="router.push({ name: 'admin' })" class="mr-2" />
+        <el-button v-if="auth.isLoggedIn() && route.path === '/'" :icon="Setting" circle @click="router.push({ name: 'admin' })" class="mr-2" />
         <el-button :icon="Notebook" circle @click="openChangelog" class="mr-2" />
         <el-button :icon="themeStore.isDark ? Moon : Sunny" circle @click="themeStore.toggleTheme" />
       </div>

@@ -22,6 +22,11 @@ export interface Monitor {
   create_datetime: number; // Added for running time calculation
   response_times?: Array<{ datetime: number; value: number }>;
   logs?: Array<{ type: number; datetime: number; duration: number; reason: any }>;
+  ssl?: {
+    brand: string;
+    product: string;
+    expires: number;
+  };
 }
 
 export interface Visitor {
