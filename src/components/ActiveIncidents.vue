@@ -18,15 +18,20 @@
       </div>
       
       <div class="card-footer mt-3">
-        <span v-if="item.start_time" class="time">
-          开始: {{ new Date(item.start_time * 1000).toLocaleString() }}
-        </span>
-        <span v-if="item.end_time" class="time ml-3">
-          预计结束: {{ new Date(item.end_time * 1000).toLocaleString() }}
-        </span>
-        <span class="time ml-auto updated">
-          更新于: {{ new Date(item.updated_at * 1000).toLocaleString() }}
-        </span>
+        <div class="time-group">
+          <div v-if="item.start_time" class="time-row">
+            <span class="time-label">开始:</span>
+            <span class="time-value">{{ new Date(item.start_time * 1000).toLocaleString() }}</span>
+          </div>
+          <div v-if="item.end_time" class="time-row">
+            <span class="time-label">预计结束:</span>
+            <span class="time-value">{{ new Date(item.end_time * 1000).toLocaleString() }}</span>
+          </div>
+        </div>
+        <div class="update-info ml-auto">
+          <span class="time-label">更新于:</span>
+          <span class="time-value">{{ new Date(item.updated_at * 1000).toLocaleString() }}</span>
+        </div>
       </div>
     </div>
   </div>
@@ -144,19 +149,71 @@ onMounted(() => {
 
 .card-footer {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   font-size: 12px;
   color: var(--el-text-color-secondary);
   border-top: 1px solid var(--el-border-color-lighter);
   padding-top: 12px;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
 }
 
-.ml-3 { margin-left: 12px; }
+.time-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.time-row, .update-info {
+  display: flex;
+  align-items: center;
+  line-height: 1.4;
+}
+
+.time-label {
+  margin-right: 8px;
+  opacity: 0.8;
+}
+
+/* Align Start and End labels */
+.time-group .time-label {
+  min-width: 5em; /* Enough for "预计结束:" */
+  text-align: right;
+  display: inline-block;
+}
+
+.time-value {
+  font-family: inherit; /* Use default font, not monospace */
+  font-variant-numeric: tabular-nums;
+}
+
 .ml-auto { margin-left: auto; }
 .mr-2 { margin-right: 8px; }
 .mt-3 { margin-top: 12px; }
+
+@media (max-width: 640px) {
+  .card-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .ml-auto {
+    margin-left: 0;
+    align-self: flex-end;
+    margin-top: 4px;
+    opacity: 0.7;
+    font-size: 11px;
+  }
+  
+  /* On mobile, maybe left align labels for cleaner look? 
+     User asked for vertical alignment of times. 
+     Keeping fixed width label ensures times start at same vertical line. */
+  .time-group .time-label {
+    text-align: left;
+    min-width: 4.5em; /* Slightly tighter on mobile */
+  }
+}
 
 /* Markdown Dark Mode Adaptation */
 :deep(.markdown-body) {
