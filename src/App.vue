@@ -3,7 +3,7 @@ import { useThemeStore } from './stores/theme';
 import { useAuthStore } from './stores/auth';
 import { useLayoutStore } from './stores/layout';
 import { useRouter, useRoute } from 'vue-router';
-import { Moon, Sunny, Monitor, ArrowLeft, Notebook } from '@element-plus/icons-vue';
+import { Moon, Sunny, Monitor, ArrowLeft, Notebook, Setting } from '@element-plus/icons-vue';
 import { ref, onMounted, onUnmounted } from 'vue';
 import { getVisitorStats } from './services/api';
 import VisitorStatsDialog from './components/VisitorStatsDialog.vue';
@@ -70,6 +70,7 @@ onUnmounted(() => {
       </transition>
       
       <div class="actions">
+        <el-button v-if="auth.isLoggedIn() && !route.path.startsWith('/admin')" :icon="Setting" circle @click="router.push({ name: 'admin' })" class="mr-2" />
         <el-button :icon="Notebook" circle @click="openChangelog" class="mr-2" />
         <el-button :icon="themeStore.isDark ? Moon : Sunny" circle @click="themeStore.toggleTheme" />
       </div>

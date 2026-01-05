@@ -90,19 +90,7 @@
           </el-col>
         </template>
         
-        <!-- Admin Card (Fixed) -->
-        <el-col :span="24" v-if="isAdmin" class="card-col">
-          <div class="link-card" @click="goAdmin">
-            <div class="card-header">
-              <div class="accent-bar bg-green"></div>
-              <h3 class="card-title">后台</h3>
-            </div>
-            <div class="card-content hover-effect">
-              <el-icon class="card-icon" :size="24"><Setting /></el-icon>
-              <span class="card-text">打开后台管理</span>
-            </div>
-          </div>
-        </el-col>
+        <!-- Admin Card (Removed) -->
 
       </el-row>
     </div>
@@ -196,7 +184,7 @@ import { onMounted, onUnmounted, ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useMonitorStore } from '../stores/monitor';
 import MonitorCard from '../components/MonitorCard.vue';
-import { Refresh, Filter, CaretBottom, Monitor, User, Setting, More } from '@element-plus/icons-vue';
+import { Refresh, Filter, CaretBottom, Monitor, User, More } from '@element-plus/icons-vue';
 import { getPublicFriendLinks, getPublicGroupChats, getPublicAnnouncements, getPublicSiteCards, getPublicApps, type FriendLink, type SiteCard, type AppItem } from '../services/admin';
 import { connectWS, onWS } from '../services/ws';
 import { useAuthStore } from '../stores/auth';
@@ -204,7 +192,6 @@ import { useAuthStore } from '../stores/auth';
 const store = useMonitorStore();
 const router = useRouter();
 const auth = useAuthStore();
-const isAdmin = computed(() => auth.isLoggedIn());
 const activeLogsId = ref<number | null>(null);
 
 const siteCards = ref<SiteCard[]>([]);
@@ -439,10 +426,6 @@ const goToDetail = (id: number) => {
 const goApps = () => {
   router.push({ name: 'apps' });
 };
-
-const goAdmin = () => router.push({ name: 'admin' });
-
-// 登录入口与退出登录移动至全局底部栏
 </script>
 
 <style scoped>
