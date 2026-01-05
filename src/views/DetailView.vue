@@ -97,6 +97,19 @@
         <el-card>
           <template #header>
             <div class="card-header">
+              <span>运行状态热力图 (最近30天)</span>
+            </div>
+          </template>
+          <UptimeHeatmap :uptime-ranges="monitor.custom_uptime_ranges" />
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <el-row :gutter="20">
+      <el-col :span="24" class="mb-4">
+        <el-card>
+          <template #header>
+            <div class="card-header">
               <span>响应时间趋势 (最近24小时)</span>
             </div>
           </template>
@@ -327,6 +340,7 @@ import { useMonitorStore } from '../stores/monitor';
 import { useLayoutStore } from '../stores/layout'; // Import Layout Store
 import { proxyRequest } from '../services/api';
 import UptimeChart from '../components/UptimeChart.vue';
+import UptimeHeatmap from '../components/UptimeHeatmap.vue';
 import { Link, Delete, Loading, CaretBottom, CaretRight } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 
