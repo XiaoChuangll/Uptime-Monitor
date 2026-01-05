@@ -37,6 +37,28 @@ export interface Visitor {
   timestamp: string;
 }
 
+export interface Incident {
+  id: number;
+  title: string;
+  content?: string;
+  status: 'investigating' | 'identified' | 'monitoring' | 'resolved' | 'scheduled';
+  type: 'incident' | 'maintenance';
+  start_time?: number;
+  end_time?: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export const getActiveIncidents = async (): Promise<Incident[]> => {
+  try {
+    const response = await apiClient.get('/public/incidents/active');
+    return response.data.items || [];
+  } catch (error) {
+    console.error('Failed to fetch active incidents', error);
+    return [];
+  }
+};
+
 export const getMonitors = async (): Promise<Monitor[]> => {
   try {
     // Call local backend which proxies to UptimeRobot

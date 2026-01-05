@@ -21,6 +21,9 @@
       <el-tab-pane label="环境变量" name="env">
         <EnvManagerView :embedded="true" />
       </el-tab-pane>
+      <el-tab-pane label="故障维护" name="incidents">
+        <IncidentsAdminView :embedded="true" />
+      </el-tab-pane>
       <el-tab-pane label="更新日志" name="changelogs">
         <ChangelogsAdminView :embedded="true" />
       </el-tab-pane>
@@ -49,13 +52,14 @@
   import AppsAdminView from './AppsAdminView.vue';
   import AnnouncementsView from './AnnouncementsView.vue';
   import EnvManagerView from './EnvManagerView.vue';
-  import VisitorLogsView from './VisitorLogsView.vue';
-  import SystemLogsView from './SystemLogsView.vue';
-  import ChangelogsAdminView from './ChangelogsAdminView.vue';
+import VisitorLogsView from './VisitorLogsView.vue';
+import SystemLogsView from './SystemLogsView.vue';
+import IncidentsAdminView from './IncidentsAdminView.vue';
+import ChangelogsAdminView from './ChangelogsAdminView.vue';
 import SiteCardsAdminView from './SiteCardsAdminView.vue';
 import AboutManageView from './AboutManageView.vue';
 
-const active = ref<'links' | 'groups' | 'apps' | 'announcements' | 'env' | 'visitors' | 'logs' | 'changelogs' | 'site-cards' | 'about'>('links');
+const active = ref<'links' | 'groups' | 'apps' | 'announcements' | 'env' | 'visitors' | 'logs' | 'changelogs' | 'site-cards' | 'about' | 'incidents'>('links');
 const router = useRouter();
   const layoutStore = useLayoutStore();
   const pageHeaderRef = ref<HTMLElement | null>(null);

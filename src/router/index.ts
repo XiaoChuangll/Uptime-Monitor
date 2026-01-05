@@ -9,6 +9,7 @@ const AppsAdminView = () => import('../views/admin/AppsAdminView.vue');
 const AnnouncementsView = () => import('../views/admin/AnnouncementsView.vue');
 const EnvManagerView = () => import('../views/admin/EnvManagerView.vue');
 const SystemLogsView = () => import('../views/admin/SystemLogsView.vue');
+const IncidentsAdminView = () => import('../views/admin/IncidentsAdminView.vue');
 const AdminDashboardView = () => import('../views/admin/AdminDashboardView.vue');
 const LoginView = () => import('../views/LoginView.vue');
 const NotFoundView = () => import('../views/NotFoundView.vue');
@@ -83,6 +84,12 @@ const router = createRouter({
       path: '/admin/logs',
       name: 'admin-logs',
       component: SystemLogsView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/admin/incidents',
+      name: 'admin-incidents',
+      component: IncidentsAdminView,
       meta: { requiresAuth: true },
     },
     {

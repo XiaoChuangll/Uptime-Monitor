@@ -13,6 +13,25 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+import { type Incident } from './api';
+export type { Incident };
+
+// Incidents
+export const getIncidents = async () => {
+  const { data } = await api.get('/incidents');
+  return data.items as Incident[];
+};
+export const createIncident = async (payload: Partial<Incident>) => {
+  const { data } = await api.post('/incidents', payload);
+  return data.id as number;
+};
+export const updateIncident = async (id: number, payload: Partial<Incident>) => {
+  await api.put(`/incidents/${id}`, payload);
+};
+export const deleteIncident = async (id: number) => {
+  await api.delete(`/incidents/${id}`);
+};
+
 // Friend Links
 export interface FriendLink {
   id: number;

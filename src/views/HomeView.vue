@@ -1,5 +1,7 @@
 <template>
   <div class="home-view">
+    <ActiveIncidents />
+    
     <div class="dynamic-sections mb-4">
       <el-row :gutter="20">
         <template v-for="card in sortedCards" :key="card.key">
@@ -184,6 +186,7 @@ import { onMounted, onUnmounted, ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useMonitorStore } from '../stores/monitor';
 import MonitorCard from '../components/MonitorCard.vue';
+import ActiveIncidents from '../components/ActiveIncidents.vue';
 import { Refresh, Filter, CaretBottom, Monitor, User, More } from '@element-plus/icons-vue';
 import { getPublicFriendLinks, getPublicGroupChats, getPublicAnnouncements, getPublicSiteCards, getPublicApps, type FriendLink, type SiteCard, type AppItem } from '../services/admin';
 import { connectWS, onWS } from '../services/ws';

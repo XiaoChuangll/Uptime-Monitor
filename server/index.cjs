@@ -554,6 +554,75 @@ app.get('/api/public/group-chats', (req, res) => {
   });
 });
 
+// Incidents CRUD
+app.get('/api/incidents', requireAuth, (req, res) => {
+  db.all(`SELECT * FROM incidents ORDER BY created_at DESC`, [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ items: rows });
+  });
+});
+
+app.post('/api/incidents', requireAuth, (req, res) => {
+  const { title, content, status, type, start_time, end_time } = req.body;
+  db.run(
+    `INSERT INTO incidents (title, content, status, type, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?)`,
+    [title, content, status, type, start_time, end_time],
+    function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      const id = this.lastID;
+      logAction(req.user?.username, 'create', 'incidents', id, { title });
+      db.all(`SELECT * FROM incidents WHERE status != 'resolved' OR (type = 'maintenance' AND end_time > ?) ORDER BY type DESC, start_time DESC, created_at DESC`, [Math.floor(Date.now() / 1000)], (e2, rows) => {
+        if (!e2) broadcast('incidents:update', rows);
+      });
+      res.json({ id });
+    }
+  );
+});
+
+app.put('/api/incidents/:id', requireAuth, (req, res) => {
+  const id = Number(req.params.id);
+  const { title, content, status, type, start_time, end_time } = req.body;
+  db.run(
+    `UPDATE incidents SET title=?, content=?, status=?, type=?, start_time=?, end_time=?, updated_at=strftime('%s', 'now') WHERE id=?`,
+    [title, content, status, type, start_time, end_time, id],
+    function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      logAction(req.user?.username, 'update', 'incidents', id, { title, status });
+      db.all(`SELECT * FROM incidents WHERE status != 'resolved' OR (type = 'maintenance' AND end_time > ?) ORDER BY type DESC, start_time DESC, created_at DESC`, [Math.floor(Date.now() / 1000)], (e2, rows) => {
+        if (!e2) broadcast('incidents:update', rows);
+      });
+      res.json({ changed: this.changes });
+    }
+  );
+});
+
+app.delete('/api/incidents/:id', requireAuth, (req, res) => {
+  const id = Number(req.params.id);
+  db.run(`DELETE FROM incidents WHERE id=?`, [id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    logAction(req.user?.username, 'delete', 'incidents', id);
+    db.all(`SELECT * FROM incidents WHERE status != 'resolved' OR (type = 'maintenance' AND end_time > ?) ORDER BY type DESC, start_time DESC, created_at DESC`, [Math.floor(Date.now() / 1000)], (e2, rows) => {
+      if (!e2) broadcast('incidents:update', rows);
+    });
+    res.json({ deleted: this.changes });
+  });
+});
+
+app.get('/api/public/incidents/active', (req, res) => {
+  const now = Math.floor(Date.now() / 1000);
+  db.all(
+    `SELECT * FROM incidents 
+     WHERE status != 'resolved' 
+     OR (type = 'maintenance' AND end_time > ?) 
+     ORDER BY type DESC, start_time DESC, created_at DESC`, 
+    [now], 
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ items: rows });
+    }
+  );
+});
+
 // Apps CRUD
 app.get('/api/apps', requireAuth, (req, res) => {
   db.all(`SELECT * FROM apps ORDER BY id DESC`, [], (err, rows) => {
@@ -1045,6 +1114,72 @@ app.post('/api/logs/batch-delete', requireAuth, (req, res) => {
   db.run(`DELETE FROM operation_logs WHERE id IN (${placeholders})`, ids, function(err) {
     if (err) return res.status(500).json({ error: err.message });
     logAction(req.user?.username, 'delete_logs', 'operation_logs', null, { count: this.changes });
+    res.json({ deleted: this.changes });
+  });
+});
+
+// Incidents CRUD
+app.get('/api/public/incidents/active', (req, res) => {
+  db.all(
+    `SELECT * FROM incidents 
+     WHERE status != 'resolved' OR (type = 'maintenance' AND end_time > ?) 
+     ORDER BY type DESC, start_time DESC, created_at DESC`, 
+    [Math.floor(Date.now() / 1000)], 
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ items: rows });
+    }
+  );
+});
+
+app.get('/api/incidents', requireAuth, (req, res) => {
+  db.all(`SELECT * FROM incidents ORDER BY created_at DESC`, [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ items: rows });
+  });
+});
+
+app.post('/api/incidents', requireAuth, (req, res) => {
+  const { title, content, status, type, start_time, end_time } = req.body;
+  db.run(
+    `INSERT INTO incidents (title, content, status, type, start_time, end_time) VALUES (?,?,?,?,?,?)`,
+    [title, content, status, type || 'incident', start_time || null, end_time || null],
+    function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      logAction(req.user?.username, 'create', 'incidents', this.lastID, { title });
+      db.all(`SELECT * FROM incidents WHERE status != 'resolved' OR (type = 'maintenance' AND end_time > ?) ORDER BY type DESC, start_time DESC`, [Math.floor(Date.now() / 1000)], (e2, rows) => {
+        if (!e2) broadcast('incidents:update', rows);
+      });
+      res.json({ id: this.lastID });
+    }
+  );
+});
+
+app.put('/api/incidents/:id', requireAuth, (req, res) => {
+  const id = Number(req.params.id);
+  const { title, content, status, type, start_time, end_time } = req.body;
+  db.run(
+    `UPDATE incidents SET title=?, content=?, status=?, type=?, start_time=?, end_time=?, updated_at=strftime('%s', 'now') WHERE id=?`,
+    [title, content, status, type, start_time || null, end_time || null, id],
+    function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      logAction(req.user?.username, 'update', 'incidents', id, { title });
+      db.all(`SELECT * FROM incidents WHERE status != 'resolved' OR (type = 'maintenance' AND end_time > ?) ORDER BY type DESC, start_time DESC`, [Math.floor(Date.now() / 1000)], (e2, rows) => {
+        if (!e2) broadcast('incidents:update', rows);
+      });
+      res.json({ changed: this.changes });
+    }
+  );
+});
+
+app.delete('/api/incidents/:id', requireAuth, (req, res) => {
+  const id = Number(req.params.id);
+  db.run(`DELETE FROM incidents WHERE id=?`, [id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    logAction(req.user?.username, 'delete', 'incidents', id);
+    db.all(`SELECT * FROM incidents WHERE status != 'resolved' OR (type = 'maintenance' AND end_time > ?) ORDER BY type DESC, start_time DESC`, [Math.floor(Date.now() / 1000)], (e2, rows) => {
+      if (!e2) broadcast('incidents:update', rows);
+    });
     res.json({ deleted: this.changes });
   });
 });
