@@ -1,13 +1,14 @@
 <template>
-  <transition name="fade">
-    <div 
-      v-if="store.showPlayer && store.currentTrack" 
-      class="mini-player"
-      :class="{ minimized: isMinimized }"
-      ref="playerRef"
-      :style="playerStyle"
-      @click="handlePlayerClick"
-    >
+  <Teleport to="body">
+    <transition name="fade">
+      <div 
+        v-if="store.showPlayer && store.currentTrack" 
+        class="mini-player"
+        :class="{ minimized: isMinimized }"
+        ref="playerRef"
+        :style="playerStyle"
+        @click="handlePlayerClick"
+      >
       <div v-if="isMinimized" class="minimized-content">
         <el-image :src="coverUrl" class="minimized-cover" fit="cover">
            <template #error><el-icon><Headset /></el-icon></template>
@@ -85,7 +86,8 @@
         </div>
       </div>
     </div>
-  </transition>
+    </transition>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -100,10 +102,15 @@ const volumeSync = ref(0.5);
 const isMinimized = ref(false);
 const footerOverlap = ref(0);
 const playerRef = ref<HTMLElement | null>(null);
+const isMobile = ref(false);
 
 watch(() => store.showPlayer && store.currentTrack, async () => {
   // Reset minimized state when track changes or player shows up
 }, { immediate: true });
+
+const checkMobile = () => {
+  isMobile.value = window.innerWidth <= 768;
+};
 
 const toggleMinimize = () => {
   isMinimized.value = !isMinimized.value;
@@ -123,17 +130,19 @@ const checkFooterOverlap = () => {
   const viewportHeight = window.innerHeight;
   
   if (footerRect.top < viewportHeight) {
-    // Footer is visible
+    // Footer is visible in viewport
     if (playerRef.value) {
        const footerVisibleHeight = viewportHeight - footerRect.top;
-       // Add 20px padding
-       const newOverlap = footerVisibleHeight > 0 ? footerVisibleHeight + 20 : 0;
+       // Add padding (10px for mobile, 20px for desktop)
+       const padding = isMobile.value ? 12 : 20;
+       const newOverlap = footerVisibleHeight > 0 ? footerVisibleHeight + padding : 0;
        
        if (footerOverlap.value !== newOverlap) {
          footerOverlap.value = newOverlap;
        }
     }
   } else {
+    // Footer is not visible
     footerOverlap.value = 0;
   }
 };
@@ -141,6 +150,8 @@ const checkFooterOverlap = () => {
 onMounted(() => {
   window.addEventListener('scroll', checkFooterOverlap);
   window.addEventListener('resize', checkFooterOverlap);
+  window.addEventListener('resize', checkMobile);
+  checkMobile();
   // Initial check
   nextTick(checkFooterOverlap);
 });
@@ -148,12 +159,25 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('scroll', checkFooterOverlap);
   window.removeEventListener('resize', checkFooterOverlap);
+  window.removeEventListener('resize', checkMobile);
 });
 
 const playerStyle = computed(() => {
-  let bottomVal = 20;
-  if (footerOverlap.value > 20) {
-    bottomVal = footerOverlap.value;
+  // Mobile default bottom: 10px (close to bottom edge)
+  // Desktop default bottom: 20px
+  const baseBottom = isMobile.value ? 10 : 20;
+  let bottomVal = baseBottom;
+  
+  // If footer overlaps, we lift it up
+  if (footerOverlap.value > 0) {
+    // If overlap is greater than base, use overlap.
+    // Basically we want max(baseBottom, footerOverlap)
+    // But footerOverlap is distance from bottom of screen to top of footer + 20px padding.
+    // So if footer is 100px visible, overlap is 120.
+    // We want player bottom to be 120.
+    if (footerOverlap.value > baseBottom) {
+        bottomVal = footerOverlap.value;
+    }
   }
   
   return {
@@ -234,7 +258,7 @@ const artistName = computed(() => {
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.1);
   padding: 10px 20px;
-  z-index: 2000;
+  z-index: 9999;
   backdrop-filter: blur(10px);
   user-select: none;
   transition: width 0.3s ease, height 0.3s ease, border-radius 0.3s ease, left 0.3s ease, bottom 0.3s ease, transform 0.3s ease;
@@ -250,6 +274,53 @@ const artistName = computed(() => {
   right: 20px;
   transform: translateX(0);
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+@media (max-width: 768px) {
+  .mini-player {
+    width: calc(100% - 32px) !important; /* Ensure margin for shadow */
+    /* bottom is controlled by style binding now */
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    max-width: none;
+    padding: 8px 15px;
+  }
+
+  .mini-player.minimized {
+    width: 60px !important;
+    height: 60px !important;
+    left: auto !important;
+    right: 15px !important;
+    /* bottom is controlled by style binding now */
+    transform: none !important;
+    border-radius: 12px;
+  }
+
+  .player-content {
+    gap: 10px;
+  }
+
+  .track-cover {
+    width: 36px;
+    height: 36px;
+  }
+
+  .track-name {
+    font-size: 13px;
+  }
+
+  .track-artist {
+    font-size: 11px;
+  }
+
+  .player-controls {
+    gap: 5px;
+  }
+  
+  .play-btn {
+    width: 32px;
+    height: 32px;
+  }
 }
 
 .minimized-content {
@@ -442,27 +513,5 @@ const artistName = computed(() => {
   opacity: 0;
 }
 
-@media (max-width: 768px) {
-  .player-content {
-    flex-wrap: wrap;
-    justify-content: space-between;
-  }
-  
-  .player-progress {
-    order: 3;
-    width: 100%;
-    flex: 0 0 100%;
-    margin-top: 10px;
-    padding-bottom: 5px;
-  }
-  
-  .track-info {
-    max-width: 50%;
-  }
 
-  .mini-player {
-    bottom: 10px;
-    width: 95%;
-  }
-}
 </style>

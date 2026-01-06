@@ -248,8 +248,15 @@
             </div>
           </template>
           <div class="search-box">
-             <el-input v-model="searchKeyword" placeholder="搜索歌曲、专辑、歌手..." class="input-with-select" @keyup.enter="() => handleSearch(false)" clearable @clear="clearSearch">
-                <template #prepend>
+             <el-input 
+               v-model="searchKeyword" 
+               placeholder="搜索歌曲、专辑、歌手..." 
+               class="input-with-select" 
+               @keyup.enter="() => handleSearch(false)" 
+               clearable 
+               @clear="clearSearch"
+             >
+                <template #prepend v-if="!isMobile">
                   <el-select v-model="searchType" placeholder="类型" style="width: 100px">
                     <el-option label="歌曲" :value="1" />
                     <el-option label="专辑" :value="10" />
@@ -260,10 +267,32 @@
                   <el-button :icon="Search" @click="() => handleSearch(false)" :loading="searchLoading" />
                 </template>
              </el-input>
+             <div class="mobile-search-type mt-2" v-if="isMobile">
+                <el-radio-group v-model="searchType" size="small">
+                  <el-radio-button :value="1">歌曲</el-radio-button>
+                  <el-radio-button :value="10">专辑</el-radio-button>
+                  <el-radio-button :value="100">歌手</el-radio-button>
+                </el-radio-group>
+             </div>
           </div>
           
           <div v-if="searchResults && searchResults.length > 0" class="search-results mt-4" style="margin-top: 20px;">
-             <el-table v-if="searchType === 1" :data="searchResults" stripe style="width: 100%">
+             <!-- Mobile List View for Songs -->
+             <div v-if="searchType === 1 && isMobile" class="mobile-song-list">
+               <div v-for="song in searchResults" :key="song.id" class="mobile-song-item" @click="playerStore.playTrack(song, searchResults)">
+                 <div class="song-info">
+                   <div class="song-name">{{ song.name }}</div>
+                   <div class="song-meta">
+                     {{ (song.ar || song.artists || []).map((a: any) => a.name).join(', ') }} - {{ song.al?.name || song.album?.name || '未知' }}
+                   </div>
+                 </div>
+                 <div class="song-action">
+                   <el-icon><VideoPlay /></el-icon>
+                 </div>
+               </div>
+             </div>
+
+             <el-table v-else-if="searchType === 1" :data="searchResults" stripe style="width: 100%">
                 <el-table-column prop="name" label="歌曲标题" min-width="150" />
                 <el-table-column label="歌手" min-width="120">
                     <template #default="{ row }">
@@ -289,9 +318,9 @@
                 </el-table-column>
              </el-table>
              
-             <div v-else-if="searchType === 10" class="album-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px;">
-                 <div v-for="album in searchResults" :key="album.id" class="album-item" style="text-align: center; cursor: pointer;" @click="openAlbumDetail(album)">
-                    <el-image :src="album.picUrl" style="width: 100%; border-radius: 8px; aspect-ratio: 1;" fit="cover" />
+             <div v-else-if="searchType === 10" class="album-grid">
+                 <div v-for="album in searchResults" :key="album.id" class="album-item" @click="openAlbumDetail(album)">
+                    <el-image :src="album.picUrl" class="album-cover" fit="cover" />
                     <div class="search-item-title">{{ album.name }}</div>
                     <div class="search-item-subtitle">{{ album.artist?.name || (album.artists && album.artists.length > 0 ? album.artists[0].name : '未知歌手') }}</div>
                  </div>
@@ -414,11 +443,27 @@
       </el-col>
     </el-row>
 
-    <el-dialog v-model="showDetailDialog" :title="detailTitle" width="70%">
+    <el-dialog v-model="showDetailDialog" :title="detailTitle" :width="isMobile ? '95%' : '70%'">
        <div style="margin-bottom: 15px;">
           <el-button type="primary" :icon="VideoPlay" @click="() => playerStore.playTrack(detailTracks[0], detailTracks)" :disabled="detailTracks.length === 0">播放全部</el-button>
        </div>
-       <el-table :data="detailTracks" v-loading="detailLoading" height="400" stripe>
+       
+       <div v-if="isMobile" class="mobile-song-list">
+         <div v-for="(song, index) in detailTracks" :key="song.id" class="mobile-song-item" @click="playerStore.playTrack(song, detailTracks)">
+           <div class="song-index">{{ index + 1 }}</div>
+           <div class="song-info">
+             <div class="song-name">{{ song.name }}</div>
+             <div class="song-meta">
+               {{ (song.ar || song.artists || []).map((a: any) => a.name).join(', ') }} - {{ song.al?.name || song.album?.name || '未知' }}
+             </div>
+           </div>
+           <div class="song-action">
+             <el-icon><VideoPlay /></el-icon>
+           </div>
+         </div>
+       </div>
+
+       <el-table v-else :data="detailTracks" v-loading="detailLoading" height="400" stripe>
           <el-table-column type="index" width="50" />
           <el-table-column prop="name" label="歌曲标题" />
           <el-table-column label="歌手">
@@ -482,6 +527,12 @@ const monitorId = Number(route.params.id);
 
 const monitor = computed(() => store.monitors.find(m => m.id === monitorId));
 const pageHeaderRef = ref<HTMLElement | null>(null); // Ref for Page Header
+
+// Mobile Check
+const isMobile = ref(false);
+const checkMobile = () => {
+  isMobile.value = window.innerWidth <= 768;
+};
 
 // Login Logic
 const showLoginQr = ref(false);
@@ -705,6 +756,9 @@ const openArtistDetail = async (artist: any) => {
 onMounted(() => {
   window.scrollTo(0, 0);
   window.addEventListener('scroll', handleScroll);
+  window.addEventListener('resize', checkMobile);
+  checkMobile();
+  
   if (monitor.value) {
     layoutStore.setPageInfo(monitor.value.friendly_name, true, goBack);
   }
@@ -722,6 +776,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll);
+  window.removeEventListener('resize', checkMobile);
   if (loginTimer) clearTimeout(loginTimer);
   layoutStore.reset();
 });
@@ -1430,6 +1485,88 @@ const formatDuration = (seconds: number) => {
   display: block;
 }
 
+.mobile-search-type {
+  display: flex;
+  justify-content: center;
+  margin-top: 15px; /* Increase spacing from search input */
+}
+
+.mobile-search-type :deep(.el-radio-button__inner) {
+  padding: 8px 20px; /* Increase padding inside buttons */
+  margin: 0 5px; /* Add spacing between buttons */
+  border-radius: 4px; /* Rounded corners for separate buttons */
+  border: 1px solid var(--el-border-color); /* Full border */
+  box-shadow: none !important; /* Remove default shadow overlap */
+}
+
+.mobile-search-type :deep(.el-radio-button:first-child .el-radio-button__inner) {
+  border-left: 1px solid var(--el-border-color); /* Restore left border */
+}
+
+.mobile-search-type :deep(.el-radio-button.is-active .el-radio-button__inner) {
+  background-color: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  color: white;
+}
+
+.mobile-song-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-song-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  cursor: pointer;
+}
+
+.mobile-song-item:last-child {
+  border-bottom: none;
+}
+
+.mobile-song-item:active {
+  background-color: var(--el-fill-color-light);
+}
+
+.song-index {
+  width: 30px;
+  text-align: center;
+  color: var(--el-text-color-secondary);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.song-info {
+  flex: 1;
+  min-width: 0;
+  margin-right: 10px;
+}
+
+.song-name {
+  font-size: 16px;
+  color: var(--el-text-color-primary);
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.song-meta {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.song-action {
+  color: var(--el-color-primary);
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
 .image-slot {
   display: flex;
   justify-content: center;
@@ -1461,5 +1598,35 @@ const formatDuration = (seconds: number) => {
   text-overflow: ellipsis;
   white-space: nowrap;
   margin-top: 2px;
+}
+
+.album-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 20px;
+}
+
+.album-item {
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.album-item:hover {
+  transform: translateY(-4px);
+}
+
+.album-cover {
+  width: 100%;
+  border-radius: 8px;
+  aspect-ratio: 1;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+@media (max-width: 768px) {
+  .album-grid {
+    grid-template-columns: repeat(2, 1fr); /* Force 2 columns on mobile */
+    gap: 12px;
+  }
 }
 </style>
