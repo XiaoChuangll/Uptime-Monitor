@@ -8,6 +8,7 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { getVisitorStats } from './services/api';
 import VisitorStatsDialog from './components/VisitorStatsDialog.vue';
 import ChangelogDialog from './components/ChangelogDialog.vue';
+import MiniPlayer from './components/MiniPlayer.vue';
 
 const themeStore = useThemeStore();
 const auth = useAuthStore();
@@ -90,6 +91,7 @@ onUnmounted(() => {
       </div>
       <VisitorStatsDialog v-model="showVisitorDialog" />
       <ChangelogDialog v-model="showChangelog" />
+      <MiniPlayer />
     </el-footer>
   </el-container>
 </template>
