@@ -1,6 +1,6 @@
 # Vue Uptime Monitor System
 
-> 本系统是一个集成了**服务监控**、**信息发布**与**数据统计**的一站式服务平台。基于 Vue 3 + Express + SQLite 开发。
+本系统是一个集成了**服务监控**、**信息发布**与**数据统计**的一站式服务平台。基于 Vue 3 + Express + SQLite 开发。
 
 ## 🎉 功能特性
 
@@ -108,23 +108,16 @@ node server/index.cjs
 └── package.json         # 项目配置
 ```
 
-## 二次开发注意事项
+## 📢 二次开发注意事项
 
 - **API 代理**: 开发环境下 Vite 配置了代理转发 `/api` 到后端端口。
 - **数据库**: 使用 SQLite，无需安装额外数据库服务。Schema 定义在 `server/database.cjs` 中。
 - **安全性**: 敏感配置请务必通过环境变量注入，不要硬编码在代码中。
 
-## 📜 开源许可
+## 📜 许可证
 
-- **本项目仅供个人学习研究使用，禁止用于商业及非法用途**
-- 本项目基于 [GNU Affero General Public License (AGPL-3.0)](https://www.gnu.org/licenses/agpl-3.0.html) 许可进行开源
-  1. **修改和分发：** 任何对本项目的修改和分发都必须基于 AGPL-3.0 进行，源代码必须一并提供
-  2. **派生作品：** 任何派生作品必须同样采用 AGPL-3.0，并在适当的地方注明原始项目的许可证
-  3. **注明原作者：** 在任何修改、派生作品或其他分发中，必须在适当的位置明确注明原作者及其贡献
-  4. **免责声明：** 根据 AGPL-3.0，本项目不提供任何明示或暗示的担保。请详细阅读 [GNU Affero General Public License (AGPL-3.0)](https://www.gnu.org/licenses/agpl-3.0.html) 以了解完整的免责声明内容
-  5. **社区参与：** 欢迎社区的参与和贡献，我们鼓励开发者一同改进和维护本项目
-  6. **许可证链接：** 请阅读 [GNU Affero General Public License (AGPL-3.0)](https://www.gnu.org/licenses/agpl-3.0.html) 了解更多详情
+[Apache License 2.0](LICENSE)
 
-## Star History
+## ⭐ Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=XiaoChuangll/Uptime-Monitor&type=date&legend=top-left)](https://www.star-history.com/#XiaoChuangll/Uptime-Monitor&type=date&legend=top-left)
