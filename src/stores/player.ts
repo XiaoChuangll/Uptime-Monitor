@@ -101,8 +101,14 @@ export const usePlayerStore = defineStore('player', () => {
         if (res.data?.data && res.data.data.length > 0) {
             const url = res.data.data[0].url;
             if (url) {
-                audioUrl.value = url;
-                audio.src = url;
+                let finalUrl = url;
+                // If we are on HTTPS and the song URL is HTTP, use our backend proxy to avoid Mixed Content error
+                if (location.protocol === 'https:' && url.startsWith('http:')) {
+                    finalUrl = `/api/music-proxy?url=${encodeURIComponent(url)}`;
+                }
+
+                audioUrl.value = finalUrl;
+                audio.src = finalUrl;
 
                 // Check for cover image if missing
                 if (!track.picUrl && !track.al?.picUrl && !track.album?.picUrl) {

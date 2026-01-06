@@ -168,6 +168,38 @@ app.post('/api/proxy-request', async (req, res) => {
   }
 });
 
+// Music Proxy Endpoint for streaming audio (HTTP -> HTTPS)
+app.get('/api/music-proxy', async (req, res) => {
+  const { url } = req.query;
+  if (!url) {
+    return res.status(400).send('URL is required');
+  }
+
+  try {
+    const response = await axios({
+      method: 'get',
+      url: url,
+      responseType: 'stream',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Referer': 'https://music.163.com/'
+      }
+    });
+
+    if (response.headers['content-type']) {
+      res.setHeader('Content-Type', response.headers['content-type']);
+    }
+    if (response.headers['content-length']) {
+      res.setHeader('Content-Length', response.headers['content-length']);
+    }
+
+    response.data.pipe(res);
+  } catch (error) {
+    console.error('Music proxy error:', error.message);
+    res.status(500).send('Proxy error');
+  }
+});
+
 // Upload endpoint
 app.post('/api/upload', requireAuth, upload.single('file'), (req, res) => {
   // Use absolute URL or relative URL depending on deployment
