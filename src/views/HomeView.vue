@@ -89,6 +89,18 @@
               </div>
             </div>
 
+            <!-- Online Music -->
+            <div class="link-card" v-if="card.key === 'music' || card.key === 'online_music'" @click="goMusic">
+              <div class="card-header">
+                <div class="accent-bar" :class="getCardStyle(card).accent || 'bg-red'"></div>
+                <h3 class="card-title">{{ card.title }}</h3>
+              </div>
+              <div class="card-content hover-effect">
+                <el-icon class="card-icon" :size="24"><Headset /></el-icon>
+                <span class="card-text">进入在线播放</span>
+              </div>
+            </div>
+
           </el-col>
         </template>
         
@@ -187,7 +199,7 @@ import { useRouter } from 'vue-router';
 import { useMonitorStore } from '../stores/monitor';
 import MonitorCard from '../components/MonitorCard.vue';
 import ActiveIncidents from '../components/ActiveIncidents.vue';
-import { Refresh, Filter, CaretBottom, Monitor, User, More } from '@element-plus/icons-vue';
+import { Refresh, Filter, CaretBottom, Monitor, User, More, Headset } from '@element-plus/icons-vue';
 import { getPublicFriendLinks, getPublicGroupChats, getPublicAnnouncements, getPublicSiteCards, getPublicApps, type FriendLink, type SiteCard, type AppItem } from '../services/admin';
 import { connectWS, onWS } from '../services/ws';
 
@@ -426,6 +438,10 @@ const goToDetail = (id: number) => {
 
 const goApps = () => {
   router.push({ name: 'apps' });
+};
+
+const goMusic = () => {
+  router.push({ name: 'music' });
 };
 </script>
 

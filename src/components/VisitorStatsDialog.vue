@@ -4,6 +4,7 @@
     title="访客统计"
     :width="isMobile ? '100%' : '900px'"
     :fullscreen="isMobile"
+    append-to-body
   >
   <el-row :gutter="16" class="stats-grid mb-4">
     <el-col :xs="12" :sm="12" :md="6">

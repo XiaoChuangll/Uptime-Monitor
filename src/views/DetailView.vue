@@ -549,7 +549,7 @@ const searchResults = ref<any[]>([]);
 const searchLoading = ref(false);
 const searchOffset = ref(0);
 const hasMore = ref(false);
-const searchLimit = 30;
+const searchLimit = 10;
 
 watch(searchType, () => {
   if (searchKeyword.value && searchKeyword.value.trim()) {

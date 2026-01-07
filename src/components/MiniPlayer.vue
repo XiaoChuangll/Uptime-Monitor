@@ -258,7 +258,7 @@ const artistName = computed(() => {
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.1);
   padding: 10px 20px;
-  z-index: 9999;
+  z-index: 1000;
   backdrop-filter: blur(10px);
   user-select: none;
   transition: width 0.3s ease, height 0.3s ease, border-radius 0.3s ease, left 0.3s ease, bottom 0.3s ease, transform 0.3s ease;
@@ -278,11 +278,11 @@ const artistName = computed(() => {
 
 @media (max-width: 768px) {
   .mini-player {
-    width: calc(100% - 32px) !important; /* Ensure margin for shadow */
+    width: 90% !important;
     /* bottom is controlled by style binding now */
     left: 50% !important;
     transform: translateX(-50%) !important;
-    max-width: none;
+    max-width: 380px;
     padding: 8px 15px;
   }
 

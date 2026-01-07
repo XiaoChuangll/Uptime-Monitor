@@ -149,7 +149,8 @@ db.serialize(() => {
     { key: 'friend_links', title: '友情链接', sort_order: 10, style: JSON.stringify({ span: 12, accent: 'bg-yellow' }) },
     { key: 'group_chats', title: '群聊', sort_order: 20, style: JSON.stringify({ span: 12, accent: 'bg-green' }) },
     { key: 'announcements', title: '公告', sort_order: 30, style: JSON.stringify({ span: 24, accent: 'bg-yellow' }) },
-    { key: 'apps', title: '应用', sort_order: 40, style: JSON.stringify({ span: 24, accent: 'bg-yellow' }) }
+    { key: 'apps', title: '应用', sort_order: 40, style: JSON.stringify({ span: 24, accent: 'bg-yellow' }) },
+    { key: 'music', title: '在线播放', sort_order: 5, style: JSON.stringify({ span: 24, accent: 'bg-red' }) }
   ];
 
   defaultCards.forEach(card => {

@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 const HomeView = () => import('../views/HomeView.vue');
 const DetailView = () => import('../views/DetailView.vue');
+const MusicView = () => import('../views/MusicView.vue');
 const AppsView = () => import('../views/AppsView.vue');
 const AboutView = () => import('../views/AboutView.vue');
 const FriendLinksView = () => import('../views/admin/FriendLinksView.vue');
@@ -27,6 +28,11 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: LoginView,
+    },
+    {
+      path: '/music',
+      name: 'music',
+      component: MusicView,
     },
     {
       path: '/apps',

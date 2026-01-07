@@ -28,6 +28,9 @@ export const usePlayerStore = defineStore('player', () => {
   const loading = ref(false);
   const apiUrl = ref('');
   const cookie = ref('');
+  const userProfile = ref<{nickname: string; avatarUrl: string; userId: number} | null>(null);
+  const showLoginDialog = ref(false);
+  const viewModeRequest = ref(''); // 'mine', 'home', etc.
 
   // HTML Audio Element
   const audio = new Audio();
@@ -64,6 +67,10 @@ export const usePlayerStore = defineStore('player', () => {
 
   const setCookie = (c: string) => {
     cookie.value = c;
+  };
+
+  const setUserProfile = (profile: any) => {
+    userProfile.value = profile;
   };
 
   const playTrack = async (track: Track, list?: Track[]) => {
@@ -199,14 +206,18 @@ export const usePlayerStore = defineStore('player', () => {
     currentTime,
     duration,
     loading,
+    userProfile,
+    showLoginDialog,
     setApiUrl,
     setCookie,
+    setUserProfile,
     playTrack,
     togglePlay,
     seek,
     setVolume,
     prev,
     next,
-    addToQueue
+    addToQueue,
+    viewModeRequest
   };
 });

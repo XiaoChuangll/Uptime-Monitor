@@ -2,17 +2,20 @@
 import { useThemeStore } from './stores/theme';
 import { useAuthStore } from './stores/auth';
 import { useLayoutStore } from './stores/layout';
+import { usePlayerStore } from './stores/player';
 import { useRouter, useRoute } from 'vue-router';
-import { Moon, Sunny, Monitor, ArrowLeft, Notebook, Setting } from '@element-plus/icons-vue';
+import { Moon, Sunny, Monitor, ArrowLeft, Notebook, Setting, User } from '@element-plus/icons-vue';
 import { ref, onMounted, onUnmounted } from 'vue';
 import { getVisitorStats } from './services/api';
 import VisitorStatsDialog from './components/VisitorStatsDialog.vue';
 import ChangelogDialog from './components/ChangelogDialog.vue';
 import MiniPlayer from './components/MiniPlayer.vue';
+import { ElMessage } from 'element-plus';
 
 const themeStore = useThemeStore();
 const auth = useAuthStore();
 const layoutStore = useLayoutStore();
+const playerStore = usePlayerStore();
 const router = useRouter();
 const route = useRoute();
 const goLogin = () => router.push({ name: 'login' });
@@ -38,6 +41,38 @@ const openVisitors = () => {
 
 const openChangelog = () => {
   showChangelog.value = true;
+};
+
+const handleMusicLogin = () => {
+  if (!playerStore.userProfile) {
+    playerStore.showLoginDialog = true;
+  }
+};
+
+const handleMusicUserCommand = (cmd: string) => {
+  if (cmd === 'logout') {
+    localStorage.removeItem('netease_cookie');
+    playerStore.setCookie('');
+    playerStore.setUserProfile(null);
+    ElMessage.success('已退出网易云登录');
+  } else if (cmd === 'mine') {
+    playerStore.viewModeRequest = 'mine';
+  } else if (cmd === 'refresh') {
+     // Trigger refresh in MusicView or Store? 
+     // Ideally Store should handle refresh, but logic is currently in MusicView.
+     // We can just clear profile and let MusicView refetch or force reload.
+     // For now, let's simply reload page or re-fetch if we move logic to store.
+     // Simplest: just emit event or let user know.
+     // Actually, let's move fetchUserProfile to store later. 
+     // For now, we can just clear profile to trigger reactivity if needed, 
+     // or relying on MusicView's onMounted to fetch is not enough if we are already here.
+     // We will implement full logic in MusicView to watch store state or events.
+     // But wait, if we are in App.vue, how to call MusicView's fetch?
+     // We can emit a global event or use a shared action in store.
+     // Let's add a 'refreshTrigger' to playerStore or similar.
+     // Or just let user re-login.
+     ElMessage.info('请在音乐页面刷新');
+  }
 };
 
 onMounted(() => {
@@ -72,7 +107,24 @@ onUnmounted(() => {
       
       <div class="actions">
         <el-button v-if="auth.isLoggedIn() && route.path === '/'" :icon="Setting" circle @click="router.push({ name: 'admin' })" class="mr-2" />
-        <el-button :icon="Notebook" circle @click="openChangelog" class="mr-2" />
+        
+        <!-- Changelog Button (Hidden on Music Page) -->
+        <el-button v-if="route.name !== 'music'" :icon="Notebook" circle @click="openChangelog" class="mr-2" />
+        
+        <!-- Music Login Button (Only on Music Page) -->
+        <template v-if="route.name === 'music'">
+          <el-dropdown v-if="playerStore.userProfile" trigger="click" @command="handleMusicUserCommand" class="mr-2">
+            <el-avatar :size="32" :src="playerStore.userProfile.avatarUrl" style="cursor: pointer; border: 1px solid var(--el-border-color);" />
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="mine">我的</el-dropdown-item>
+                <el-dropdown-item command="logout">退出网易云</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+          <el-button v-else :icon="User" circle @click="handleMusicLogin" class="mr-2" />
+        </template>
+
         <el-button :icon="themeStore.isDark ? Moon : Sunny" circle @click="themeStore.toggleTheme" />
       </div>
     </el-header>
@@ -86,8 +138,10 @@ onUnmounted(() => {
         </span>
         <div class="spacer"></div>
         <el-button v-if="route.name !== 'about'" link @click="router.push({ name: 'about' })" class="mr-2">关于</el-button>
-        <el-button v-if="!auth.isLoggedIn()" type="primary" @click="goLogin">登录</el-button>
-        <el-button v-else type="danger" @click="logout">退出登录</el-button>
+        <template v-if="route.name !== 'music'">
+          <el-button v-if="!auth.isLoggedIn()" type="primary" @click="goLogin">登录</el-button>
+          <el-button v-else type="danger" @click="logout">退出登录</el-button>
+        </template>
       </div>
       <VisitorStatsDialog v-model="showVisitorDialog" />
       <ChangelogDialog v-model="showChangelog" />
