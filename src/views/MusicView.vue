@@ -1,5 +1,5 @@
 <template>
-  <div class="music-view">
+  <div class="music-view" :style="{ paddingBottom: (playerStore.showPlayer && playerStore.currentTrack) ? (isMobile ? '85px' : '100px') : '20px' }">
     <el-page-header ref="pageHeaderRef" @back="goBack" class="mb-4">
       <template #content>
         <span class="text-large font-600 mr-3 no-wrap-title"> {{ pageTitle }} </span>
@@ -141,22 +141,104 @@
 
       <!-- Discovery Sections (Only show when no search) -->
       <template v-if="searchResults.length === 0">
+
+        <!-- Personalized Recommendations V2 -->
+      <div class="section mb-4" v-if="viewMode === 'home'">
+         <div class="greet-section mb-3">
+            <h2 class="greet-title">{{ greeting }}{{ playerStore.userProfile ? '，' + playerStore.userProfile.nickname : '' }}</h2>
+            <div class="greet-subtitle">由此开启好心情 ~</div>
+         </div>
+         
+         <div class="personalized-grid-v2">
+            <!-- Left Column -->
+            <div class="left-col">
+               <!-- Daily Recommend -->
+               <div class="personalized-card-v2 daily-card-v2" @click="handleDailyRecommend">
+                  <div class="card-icon-wrapper">
+                     <el-icon :size="40" class="daily-icon"><Calendar /></el-icon>
+                     <span class="daily-date">{{ currentDay }}</span>
+                  </div>
+                  <div class="card-text-v2">
+                     <div class="card-title-v2">每日推荐</div>
+                     <div class="card-desc-v2">根据你的音乐口味 · 每日更新</div>
+                  </div>
+               </div>
+               
+               <!-- Liked Music -->
+               <div class="personalized-card-v2 like-card-v2" @click="handleLikedMusic">
+                  <div class="card-icon-wrapper like-icon-wrapper">
+                     <el-image v-if="likedPlaylistCover" :src="likedPlaylistCover" class="like-cover" fit="cover" />
+                     <template v-else>
+                        <div class="like-bg-stack"></div>
+                        <el-icon :size="24" class="like-icon"><Star /></el-icon>
+                     </template>
+                  </div>
+                  <div class="card-text-v2">
+                     <div class="card-title-v2">喜欢的音乐</div>
+                     <div class="card-desc-v2">发现你独特的音乐品味</div>
+                  </div>
+               </div>
+            </div>
+
+            <!-- Right Column: Private FM -->
+          <div class="right-col fm-card-v2" @click="handleFmPlay">
+            <div class="fm-bg-blur" :style="{ backgroundImage: `url(${(fmTrack && getCover(fmTrack)) || 'https://p2.music.126.net/6y-UleORITEDbvrOLV0Q8A==/5639395138885805.jpg'})` }"></div>
+            <div class="fm-content">
+              <div class="fm-cover-wrapper">
+                <el-image :src="(fmTrack && getCover(fmTrack)) || 'https://p2.music.126.net/6y-UleORITEDbvrOLV0Q8A==/5639395138885805.jpg'" class="fm-cover" fit="cover">
+                  <template #placeholder><div class="fm-cover-placeholder"></div></template>
+                </el-image>
+                <div class="fm-tag">私人 FM</div>
+              </div>
+              <div class="fm-info-controls">
+                     <div class="fm-info">
+                        <div class="fm-title">{{ fmTrack?.name || '私人FM' }}</div>
+                        <div class="fm-artist">
+                           <el-icon><Headset /></el-icon> {{ fmTrack ? getArtistName(fmTrack) : '听见喜欢的音乐' }}
+                        </div>
+                        <div class="fm-album" v-if="fmTrack">
+                           <el-icon><Collection /></el-icon> {{ fmTrack?.al?.name || fmTrack?.album?.name || '未知专辑' }}
+                        </div>
+                     </div>
+                     
+                     <div class="fm-controls">
+                        <el-button circle size="large" class="fm-btn-play" @click.stop="handleFmPlay">
+                           <el-icon :size="24" v-if="playerStore.playMode === 'fm' && playerStore.isPlaying"><VideoPause /></el-icon>
+                           <el-icon :size="24" v-else><VideoPlay /></el-icon>
+                        </el-button>
+                        <el-button circle class="fm-btn-sub fm-btn-next" @click.stop="handleFmNext">
+                           <el-icon :size="20"><CaretRight /></el-icon>
+                        </el-button>
+                        <el-button circle class="fm-btn-sub fm-btn-trash" @click.stop="handleFmTrash">
+                           <el-icon :size="18"><Delete /></el-icon>
+                        </el-button>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
         
         <!-- Radar Playlist -->
         <div class="section mb-4" v-if="viewMode === 'home' || viewMode === 'radar'">
            <div class="section-header">
-              <h3>雷达歌单</h3>
+              <h3 @click="viewMode === 'home' && openMore('radar')" :class="{ 'cursor-pointer': viewMode === 'home' }">雷达歌单</h3>
               <el-button link v-if="viewMode === 'home'" @click="openMore('radar')">更多 <el-icon><ArrowRight /></el-icon></el-button>
            </div>
-           <el-skeleton :loading="radarLoading" animated :count="1">
+           <el-skeleton :loading="radarLoading || radarPlaylists.length === 0" animated :count="1">
              <template #template>
-                <div class="playlist-grid">
-                   <el-skeleton-item variant="image" style="width: 100%; height: 120px; border-radius: 8px;" v-for="i in 6" :key="i" />
-                </div>
+               <div class="playlist-grid" :class="{ 'mobile-scroll': viewMode === 'home' }">
+                 <div v-for="i in (viewMode === 'home' ? 7 : 12)" :key="i" class="playlist-card">
+                   <div class="cover-wrapper">
+                     <el-skeleton-item variant="image" style="width: 100%; height: 100%;" />
+                   </div>
+                   <el-skeleton-item variant="text" style="width: 80%" />
+                 </div>
+               </div>
              </template>
              <template #default>
-                <div class="playlist-grid">
-                   <div v-for="list in (viewMode === 'home' ? radarPlaylists.slice(0, 6) : radarPlaylists)" :key="list.id" class="playlist-card" @click="openPlaylist(list)">
+               <div class="playlist-grid" :class="{ 'mobile-scroll': viewMode === 'home' }">
+                   <div v-for="list in (viewMode === 'home' ? radarPlaylists.slice(0, 7) : radarPlaylists)" :key="list.id" class="playlist-card" @click="openPlaylist(list)">
                       <div class="cover-wrapper">
                          <el-image :src="list.coverImgUrl || list.picUrl" class="playlist-cover" lazy />
                          <div class="play-count"><el-icon><Headset /></el-icon> {{ formatCount(list.playCount) }}</div>
@@ -171,18 +253,23 @@
         <!-- Recommended Playlist -->
         <div class="section mb-4" v-if="viewMode === 'home' || viewMode === 'recommend'">
            <div class="section-header">
-              <h3>推荐歌单</h3>
+              <h3 @click="viewMode === 'home' && openMore('recommend')" :class="{ 'cursor-pointer': viewMode === 'home' }">推荐歌单</h3>
               <el-button link v-if="viewMode === 'home'" @click="openMore('recommend')">更多 <el-icon><ArrowRight /></el-icon></el-button>
            </div>
-           <el-skeleton :loading="recommendLoading" animated>
+           <el-skeleton :loading="recommendLoading || recommendPlaylists.length === 0" animated>
              <template #template>
-                <div class="playlist-grid">
-                   <el-skeleton-item variant="image" style="width: 100%; height: 120px; border-radius: 8px;" v-for="i in 6" :key="i" />
-                </div>
+               <div class="playlist-grid" :class="{ 'mobile-scroll': viewMode === 'home' }">
+                 <div v-for="i in (viewMode === 'home' ? 7 : 12)" :key="i" class="playlist-card">
+                   <div class="cover-wrapper">
+                     <el-skeleton-item variant="image" style="width: 100%; height: 100%;" />
+                   </div>
+                   <el-skeleton-item variant="text" style="width: 80%" />
+                 </div>
+               </div>
              </template>
              <template #default>
-                <div class="playlist-grid">
-                   <div v-for="list in (viewMode === 'home' ? recommendPlaylists.slice(0, 6) : recommendPlaylists)" :key="list.id" class="playlist-card" @click="openPlaylist(list)">
+               <div class="playlist-grid" :class="{ 'mobile-scroll': viewMode === 'home' }">
+                   <div v-for="list in (viewMode === 'home' ? recommendPlaylists.slice(0, 7) : recommendPlaylists)" :key="list.id" class="playlist-card" @click="openPlaylist(list)">
                       <div class="cover-wrapper">
                          <el-image :src="list.picUrl || list.coverImgUrl" class="playlist-cover" lazy />
                          <div class="play-count"><el-icon><Headset /></el-icon> {{ formatCount(list.playCount) }}</div>
@@ -197,36 +284,71 @@
         <!-- Rankings -->
         <div class="section mb-4" v-if="viewMode === 'home' || viewMode === 'rank'">
            <div class="section-header">
-              <h3>排行榜</h3>
+              <h3 @click="viewMode === 'home' && openMore('rank')" :class="{ 'cursor-pointer': viewMode === 'home' }">排行榜</h3>
               <el-button link v-if="viewMode === 'home'" @click="openMore('rank')">更多 <el-icon><ArrowRight /></el-icon></el-button>
            </div>
            
            <!-- Home View: List Layout -->
-           <div class="rank-grid" v-if="viewMode === 'home'">
-              <div v-for="rank in topList.slice(0, 4)" :key="rank.id" class="rank-card" @click="openPlaylist(rank)">
-                 <div class="rank-cover-wrapper">
-                    <el-image :src="rank.coverImgUrl" class="rank-cover" lazy />
+           <el-skeleton :loading="topList.length === 0" animated>
+             <template #template>
+               <div v-if="viewMode === 'home'" class="rank-grid">
+                 <div v-for="i in 4" :key="i" class="rank-card">
+                   <div class="rank-cover-wrapper">
+                     <el-skeleton-item variant="image" style="width: 100%; height: 100%; border-radius: 8px;" />
+                   </div>
+                   <div class="rank-songs">
+                     <div class="rank-song-row" style="white-space: normal; text-overflow: clip;">
+                       <el-skeleton-item variant="text" style="width: 80%" />
+                     </div>
+                     <div class="rank-song-row" style="white-space: normal; text-overflow: clip;">
+                       <el-skeleton-item variant="text" style="width: 80%" />
+                     </div>
+                     <div class="rank-song-row" style="white-space: normal; text-overflow: clip;">
+                       <el-skeleton-item variant="text" style="width: 80%" />
+                     </div>
+                   </div>
+                   <div class="playlist-name" v-if="isMobile">
+                     <el-skeleton-item variant="text" style="width: 60%" />
+                   </div>
                  </div>
-                 <div class="rank-songs">
-                    <div v-for="(song, idx) in rank.tracks.slice(0, 3)" :key="idx" class="rank-song-row">
+               </div>
+               <div v-else class="playlist-grid">
+                 <div v-for="i in 8" :key="i" class="playlist-card">
+                   <div class="cover-wrapper">
+                     <el-skeleton-item variant="image" style="width: 100%; height: 100%;" />
+                   </div>
+                   <el-skeleton-item variant="text" style="width: 80%" />
+                 </div>
+               </div>
+             </template>
+             <template #default>
+               <div class="rank-grid" v-if="viewMode === 'home'">
+                 <div v-for="rank in topList.slice(0, 4)" :key="rank.id" class="rank-card" @click="openPlaylist(rank)">
+                   <div class="rank-cover-wrapper">
+                     <el-image :src="rank.coverImgUrl" class="rank-cover" lazy />
+                   </div>
+                   <div class="rank-songs">
+                     <div v-for="(song, idx) in rank.tracks.slice(0, 3)" :key="idx" class="rank-song-row">
                        <span class="rank-num">{{ idx + 1 }}</span>
                        <span class="rank-song-name">{{ song.first }}</span>
                        <span class="rank-song-artist">- {{ song.second }}</span>
-                    </div>
+                     </div>
+                   </div>
+                   <div class="playlist-name" v-if="isMobile">{{ rank.name }}</div>
                  </div>
-              </div>
-           </div>
+               </div>
+               <div class="playlist-grid" v-else>
+                 <div v-for="rank in topList" :key="rank.id" class="playlist-card" @click="openPlaylist(rank)">
+                   <div class="cover-wrapper">
+                     <el-image :src="rank.coverImgUrl" class="playlist-cover" lazy />
+                     <div class="play-count"><el-icon><Headset /></el-icon> {{ formatCount(rank.playCount) }}</div>
+                   </div>
+                   <div class="playlist-name">{{ rank.name }}</div>
+                 </div>
+               </div>
+             </template>
+           </el-skeleton>
 
-           <!-- Full Screen View: Grid Layout -->
-           <div class="playlist-grid" v-else>
-              <div v-for="rank in topList" :key="rank.id" class="playlist-card" @click="openPlaylist(rank)">
-                 <div class="cover-wrapper">
-                    <el-image :src="rank.coverImgUrl" class="playlist-cover" lazy />
-                    <div class="play-count"><el-icon><Headset /></el-icon> {{ formatCount(rank.playCount) }}</div>
-                 </div>
-                 <div class="playlist-name">{{ rank.name }}</div>
-              </div>
-           </div>
         </div>
 
         <!-- User Playlists (Mine) -->
@@ -340,13 +462,52 @@ import { usePlayerStore } from '../stores/player';
 import { useLayoutStore } from '../stores/layout';
 import { proxyRequest } from '../services/api';
 import { ElMessage } from 'element-plus';
-import { Search, Loading, Headset, VideoPlay, Download, ArrowRight, Refresh, ArrowDown } from '@element-plus/icons-vue';
+import { Search, Loading, Headset, VideoPlay, Download, ArrowRight, Refresh, ArrowDown, Calendar, Star, CaretRight, Delete, VideoPause, Collection } from '@element-plus/icons-vue';
 
 const router = useRouter();
 const monitorStore = useMonitorStore();
 const playerStore = usePlayerStore();
 const layoutStore = useLayoutStore();
 const pageHeaderRef = ref<HTMLElement | null>(null);
+
+// Greeting Logic
+const greeting = computed(() => {
+  const hour = new Date().getHours();
+  if (hour < 6) return '夜深了';
+  if (hour < 11) return '上午好';
+  if (hour < 13) return '中午好';
+  if (hour < 18) return '下午好';
+  return '晚上好';
+});
+
+const currentDay = ref(new Date().getDate());
+
+// FM Logic
+const fmTrack = computed(() => {
+  if (playerStore.playMode === 'fm' && playerStore.currentTrack) {
+    return playerStore.currentTrack;
+  }
+  return null;
+});
+
+const handleFmPlay = async (e?: Event) => {
+  e?.stopPropagation();
+  if (playerStore.playMode === 'fm') {
+    playerStore.togglePlay();
+  } else {
+    await playerStore.playFm();
+  }
+};
+
+const handleFmNext = async (e: Event) => {
+  e.stopPropagation();
+  await playerStore.next();
+};
+
+const handleFmTrash = async (e: Event) => {
+  e.stopPropagation();
+  await playerStore.fmTrash();
+};
 
 // Mobile Check
 const isMobile = ref(false);
@@ -433,7 +594,7 @@ const openMore = async (mode: 'radar' | 'recommend' | 'rank' | 'mine') => {
     layoutStore.setPageInfo(title, true, goBack);
     
     if (mode === 'radar') {
-        if (radarPlaylists.value.length <= 6) {
+        if (radarPlaylists.value.length <= 7) {
              radarLoading.value = true;
              try {
                  const res = await proxyRequest(`${baseUrl}/personalized?limit=50`, 'GET', {}, null);
@@ -443,7 +604,7 @@ const openMore = async (mode: 'radar' | 'recommend' | 'rank' | 'mine') => {
              }
         }
     } else if (mode === 'recommend') {
-        if (recommendPlaylists.value.length <= 6) {
+        if (recommendPlaylists.value.length <= 7) {
              recommendLoading.value = true;
              try {
                  const res = await proxyRequest(`${baseUrl}/top/playlist/highquality?limit=50`, 'GET', {}, null);
@@ -512,6 +673,74 @@ watch(() => playerStore.viewModeRequest, (val) => {
         // If we clear it, next click works.
     }
 });
+
+// Watch user profile to fetch playlists
+watch(() => playerStore.userProfile, (newVal) => {
+    if (newVal) {
+        fetchUserPlaylists();
+    }
+}, { immediate: true });
+
+const likedPlaylistCover = computed(() => {
+    if (userPlaylists.value.length > 0) {
+        return userPlaylists.value[0].coverImgUrl;
+    }
+    return '';
+});
+
+// --- Personalized Actions ---
+const checkLogin = () => {
+    if (!playerStore.userProfile) {
+        ElMessage.warning('请先登录');
+        playerStore.showLoginDialog = true;
+        return false;
+    }
+    return true;
+};
+
+const handleDailyRecommend = async () => {
+    if (!checkLogin()) return;
+    if (!currentApi.value) return;
+    
+    currentPlaylist.value = { name: '每日推荐', coverImgUrl: '' };
+    showPlaylistDialog.value = true;
+    playlistLoading.value = true;
+    playlistTracks.value = [];
+    playlistPage.value = 1;
+    
+    try {
+        const baseUrl = currentApi.value.baseUrl;
+        const cookie = getCookie();
+        const headers = cookie ? { Cookie: cookie } : {};
+        const cookieEncoded = cookie ? encodeURIComponent(cookie) : '';
+        
+        const res = await proxyRequest(`${baseUrl}/recommend/songs?cookie=${cookieEncoded}`, 'GET', headers, {});
+        if (res.data?.data?.dailySongs) {
+             playlistTracks.value = res.data.data.dailySongs;
+        }
+    } catch (e) {
+        ElMessage.error('获取每日推荐失败');
+    } finally {
+        playlistLoading.value = false;
+    }
+};
+
+
+
+const handleLikedMusic = async () => {
+    if (!checkLogin()) return;
+    
+    // Check if we have user playlists
+    if (userPlaylists.value.length === 0) {
+        await fetchUserPlaylists();
+    }
+    
+    if (userPlaylists.value.length > 0) {
+        openPlaylist(userPlaylists.value[0]);
+    } else {
+        ElMessage.warning('未找到喜欢的音乐歌单');
+    }
+};
 
 // --- API Selection Logic ---
 const findBestApi = async () => {
@@ -597,8 +826,8 @@ const fetchDiscovery = async () => {
    // Parallel fetch
    try {
        const [radarRes, recRes, topRes] = await Promise.all([
-           proxyRequest(`${baseUrl}/personalized?limit=6`, 'GET', {}, null), // Radar/Personalized
-           proxyRequest(`${baseUrl}/personalized/newsong?limit=6`, 'GET', {}, null), // Actually recommended songs, but let's use playlists
+           proxyRequest(`${baseUrl}/personalized?limit=7`, 'GET', {}, null), // Radar/Personalized
+           proxyRequest(`${baseUrl}/personalized/newsong?limit=7`, 'GET', {}, null), // Actually recommended songs, but let's use playlists
            proxyRequest(`${baseUrl}/toplist/detail`, 'GET', {}, null)
        ]);
 
@@ -607,7 +836,7 @@ const fetchDiscovery = async () => {
        // Try another endpoint for recommended if logged in, or just more personalized
        if (recRes.data?.result) recommendPlaylists.value = recRes.data.result; // Just using same for demo if endpoint differs
        // Actually let's fetch Highquality for recommended
-       const hqRes = await proxyRequest(`${baseUrl}/top/playlist/highquality?limit=6`, 'GET', {}, null);
+       const hqRes = await proxyRequest(`${baseUrl}/top/playlist/highquality?limit=7`, 'GET', {}, null);
        if (hqRes.data?.playlists) recommendPlaylists.value = hqRes.data.playlists;
 
        if (topRes.data?.list) topList.value = topRes.data.list;
@@ -914,11 +1143,15 @@ const downloadSong = async (song: any) => {
 
 // --- Helpers ---
 const getCover = (song: any) => {
-    return song.al?.picUrl || 
+    if (!song) return '';
+    let url = song.al?.picUrl || 
            song.album?.picUrl || 
+           song.picUrl ||
+           song.cover ||
            song.artists?.[0]?.img1v1Url || 
            song.img1v1Url || 
            '';
+    return url ? url.replace(/^http:/, 'https:') : '';
 };
 const getArtistName = (song: any) => (song.ar || song.artists || []).map((a: any) => a.name).join(', ');
 const highlight = (text: string) => {
@@ -1013,6 +1246,7 @@ onUnmounted(() => {
 .pagination-container {
   display: flex;
   justify-content: center;
+  padding-bottom: 150px;
 }
 .text-center { text-align: center; }
 .py-10 { padding-top: 40px; padding-bottom: 40px; }
@@ -1021,7 +1255,12 @@ onUnmounted(() => {
 .mr-3 { margin-right: 12px; }
 .api-tag { margin-left: 0; }
 .flex-center { display: flex; align-items: center; }
-.no-wrap-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; max-width: 100%; vertical-align: middle; }
+.no-wrap-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%; }
+
+:deep(.el-page-header__content) {
+  display: flex;
+  align-items: center;
+}
 
 .api-status-bar {
   padding-left: 0;
@@ -1149,7 +1388,7 @@ onUnmounted(() => {
   padding: 16px;
   display: flex;
   gap: 16px;
-  box-shadow: var(--el-box-shadow-light);
+  box-shadow: none;
   cursor: pointer;
   transition: transform 0.2s;
 }
@@ -1316,5 +1555,502 @@ onUnmounted(() => {
   font-size: 12px;
   color: var(--el-text-color-secondary);
   margin-top: 4px;
+}
+
+.personalized-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.personalized-card {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--el-bg-color);
+  box-shadow: var(--el-box-shadow-light);
+}
+.personalized-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--el-box-shadow);
+}
+
+.daily-card { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%); color: #fff; }
+.fm-card { background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); color: #fff; }
+.like-card { background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%); color: #fff; }
+
+.card-icon {
+  font-size: 32px;
+  margin-right: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.card-text {
+  flex: 1;
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.card-desc {
+  font-size: 12px;
+  opacity: 0.9;
+}
+/* New V2 Layout Styles */
+.greet-section {
+  padding: 10px 0;
+}
+.greet-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 4px 0;
+  color: var(--el-text-color-primary);
+}
+.greet-subtitle {
+  font-size: 14px;
+  color: var(--el-text-color-secondary);
+  opacity: 0.8;
+}
+
+.personalized-grid-v2 {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .personalized-grid-v2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.left-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.right-col {
+  /* Auto height */
+}
+
+.personalized-card-v2 {
+  background: var(--el-fill-color-darker);
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  flex: 1; /* Take equal height in left col */
+}
+
+.personalized-card-v2:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--el-box-shadow);
+}
+
+.daily-card-v2, .like-card-v2 {
+  background: #2b303b; /* Dark fallback */
+  background: linear-gradient(145deg, rgba(45, 50, 65, 0.9), rgba(30, 35, 45, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.card-icon-wrapper {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16px;
+  position: relative;
+}
+
+.daily-icon {
+  color: #fff;
+  opacity: 0.9;
+}
+.daily-date {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -40%); /* Adjust for calendar icon visual center */
+  font-size: 16px;
+  font-weight: bold;
+  color: #fff;
+  margin-top: 2px;
+}
+
+.like-icon-wrapper {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+.like-icon {
+  color: #fff;
+}
+.like-cover {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+}
+
+.card-text-v2 {
+  flex: 1;
+}
+.card-title-v2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 6px;
+}
+.card-desc-v2 {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* FM Card Specifics */
+.fm-card-v2 {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  background: #000;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.fm-card-v2:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--el-box-shadow);
+}
+
+.fm-card-v2::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  pointer-events: none;
+  box-sizing: border-box;
+  z-index: 10;
+}
+
+.fm-bg-blur {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(40px) brightness(0.6);
+  z-index: 1;
+  transform: scale(1.2); /* Prevent white edges from blur */
+}
+
+.fm-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.fm-cover-wrapper {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+
+.fm-cover {
+  width: 100%;
+  height: 100%;
+}
+.fm-cover-placeholder {
+  width: 100%;
+  height: 100%;
+  background: #333;
+}
+
+.fm-tag {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+}
+
+.fm-info-controls {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+}
+
+.fm-info {
+  margin-top: 0;
+}
+
+.fm-title {
+  font-size: 24px;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 8px;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.fm-artist {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fm-album {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.fm-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.fm-btn-play {
+  width: 48px;
+  height: 48px;
+  font-size: 24px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #fff;
+  transition: all 0.2s;
+}
+.fm-btn-play:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.fm-btn-sub {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.8);
+}
+.fm-btn-sub:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #fff;
+}
+
+@media (max-width: 768px) {
+  .fm-card-v2 {
+    height: auto;
+  }
+  .fm-content {
+    height: auto;
+    padding: 12px;
+    gap: 12px;
+  }
+  .fm-cover-wrapper {
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
+  }
+  .fm-title {
+    font-size: 16px;
+    margin-bottom: 4px;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .fm-artist, .fm-album {
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .fm-info-controls {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    height: auto;
+  }
+  .fm-info {
+    flex: 1;
+    min-width: 0; /* Enable text truncation */
+  }
+  .fm-controls {
+    gap: 0;
+    flex-shrink: 0;
+  }
+  .fm-btn-play, .fm-btn-trash {
+    display: none;
+  }
+}
+.horizontal-scroll-container {
+  display: flex;
+  overflow-x: auto;
+  gap: 12px;
+  padding-bottom: 8px; /* For scrollbar space if visible */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+.horizontal-scroll-container::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+.horizontal-scroll-item {
+  flex: 0 0 140px; /* Fixed width for items */
+  width: 140px;
+}
+
+/* Mobile specific adjustments */
+@media (max-width: 768px) {
+  .playlist-grid.mobile-scroll {
+    display: flex !important;
+    overflow-x: auto;
+    gap: 12px;
+    padding: 10px 0;
+    grid-template-columns: none; /* Reset grid */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-snap-type: x mandatory;
+  }
+  .playlist-grid.mobile-scroll::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .playlist-grid.mobile-scroll .playlist-card {
+    flex: 0 0 120px; /* Slightly smaller on mobile */
+    width: 120px;
+    margin-right: 0;
+    scroll-snap-align: start;
+  }
+  
+  .rank-grid {
+    display: flex !important;
+    overflow-x: auto;
+    gap: 12px;
+    padding: 10px 0;
+    grid-template-columns: none;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-snap-type: x mandatory;
+  }
+  .rank-grid::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .rank-card {
+    flex: 0 0 300px;
+    width: 300px;
+    padding: 12px;
+    flex-direction: row;
+    gap: 12px;
+    background: var(--el-bg-color);
+    box-shadow: none;
+    align-items: center;
+    position: relative;
+    scroll-snap-align: start;
+  }
+
+  .rank-card::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    pointer-events: none;
+    box-sizing: border-box;
+    z-index: 10;
+  }
+  
+  .rank-cover-wrapper {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .rank-cover {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+  }
+  
+  /* Show rank songs on mobile */
+  .rank-songs {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    font-size: 12px;
+    overflow: hidden;
+  }
+  
+  .rank-song-row {
+    font-size: 12px;
+  }
+
+  /* Hide the extra name we added for cover-only mode */
+  .rank-card .playlist-name {
+    display: none;
+  }
+
+  /* Personalized Cards Horizontal on Mobile */
+  .left-col {
+    flex-direction: row;
+  }
+  .personalized-card-v2 {
+    padding: 12px;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    gap: 8px;
+  }
+  .card-icon-wrapper {
+    margin-right: 0;
+    width: 48px;
+    height: 48px;
+  }
+  .daily-icon { font-size: 32px !important; }
+  .card-title-v2 {
+    font-size: 14px;
+  }
+  .card-desc-v2 {
+    display: none;
+  }
 }
 </style>

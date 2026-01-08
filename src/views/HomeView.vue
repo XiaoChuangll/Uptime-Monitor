@@ -95,9 +95,13 @@
                 <div class="accent-bar" :class="getCardStyle(card).accent || 'bg-red'"></div>
                 <h3 class="card-title">{{ card.title }}</h3>
               </div>
-              <div class="card-content hover-effect">
-                <el-icon class="card-icon" :size="24"><Headset /></el-icon>
-                <span class="card-text">进入在线播放</span>
+              <div class="card-content hover-effect music-card-bg">
+                <div class="pill-list">
+                  <span class="pill">每日推荐</span>
+                  <span class="pill">雷达歌单</span>
+                  <span class="pill">推荐歌单</span>
+                  <span class="pill">排行榜单</span>
+                </div>
               </div>
             </div>
 
@@ -199,7 +203,7 @@ import { useRouter } from 'vue-router';
 import { useMonitorStore } from '../stores/monitor';
 import MonitorCard from '../components/MonitorCard.vue';
 import ActiveIncidents from '../components/ActiveIncidents.vue';
-import { Refresh, Filter, CaretBottom, Monitor, User, More, Headset } from '@element-plus/icons-vue';
+import { Refresh, Filter, CaretBottom, Monitor, User, More } from '@element-plus/icons-vue';
 import { getPublicFriendLinks, getPublicGroupChats, getPublicAnnouncements, getPublicSiteCards, getPublicApps, type FriendLink, type SiteCard, type AppItem } from '../services/admin';
 import { connectWS, onWS } from '../services/ws';
 
@@ -680,4 +684,73 @@ html:not(.dark) .markdown-body {
   .stats-grid :deep(.el-col) { margin-bottom: 40px; }
 }
 
+.music-card-bg {
+  background-image: url('/music.png');
+  background-repeat: no-repeat;
+  background-position: top right;
+  background-size: contain;
+  height: 60px;
+  width: 100%;
+}
+.music-card-bg .pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: center;
+  gap: 8px;
+  height: 100%;
+  padding-right: clamp(80px, 16vw, 160px);
+  overflow: hidden;
+}
+.music-card-bg .pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--el-border-color-light);
+  background: var(--el-fill-color-light);
+  color: var(--el-text-color-primary);
+  font-size: 12px;
+  line-height: 24px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  width: 88px;
+  box-sizing: border-box;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  cursor: default;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+.music-card-bg .pill:hover {
+  background: var(--el-fill-color);
+  border-color: var(--el-color-primary);
+  color: var(--el-color-primary);
+  box-shadow: var(--el-box-shadow-light);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .music-card-bg .pill-list {
+    gap: 6px;
+    padding-right: 90px;
+  }
+  .music-card-bg .pill {
+    height: 22px;
+    line-height: 22px;
+    padding: 0 8px;
+    font-size: 11px;
+    width: 76px;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    cursor: default;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  .music-card-bg .pill:hover {
+    transform: translateY(-0.5px);
+  }
+}
 </style>

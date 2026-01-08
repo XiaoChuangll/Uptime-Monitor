@@ -89,8 +89,14 @@ onUnmounted(() => {
     <el-header class="header">
       <transition name="header-slide" mode="out-in">
         <div class="logo" v-if="!layoutStore.isScrolled || !layoutStore.pageTitle" key="default">
-          <el-icon :size="24" class="mr-2"><Monitor /></el-icon>
-          <span>服务监控</span>
+          <template v-if="route.name === 'music'">
+             <img src="/music.png" alt="Music" style="height: 32px; width: auto; margin-right: 8px;" />
+             <span style="font-family: 'Segoe UI', sans-serif; font-weight: bold; letter-spacing: 1px;">MUSIC</span>
+          </template>
+          <template v-else>
+            <el-icon :size="24" class="mr-2"><Monitor /></el-icon>
+            <span>服务监控</span>
+          </template>
         </div>
         <div class="logo page-nav" v-else key="scrolled">
           <el-button 

@@ -31,6 +31,9 @@ export const usePlayerStore = defineStore('player', () => {
   const userProfile = ref<{nickname: string; avatarUrl: string; userId: number} | null>(null);
   const showLoginDialog = ref(false);
   const viewModeRequest = ref(''); // 'mine', 'home', etc.
+  const playMode = ref<'normal' | 'fm'>('normal');
+  const personalFm = ref<Track[]>([]);
+  const fmLoading = ref(false);
 
   // HTML Audio Element
   const audio = new Audio();
@@ -77,10 +80,16 @@ export const usePlayerStore = defineStore('player', () => {
     if (list) {
       playlist.value = [...list];
       currentIndex.value = list.findIndex(t => t.id === track.id);
-    } else if (currentIndex.value === -1 || playlist.value[currentIndex.value]?.id !== track.id) {
-       // If playing a single track not in list, or just replacing current
-       playlist.value = [track];
-       currentIndex.value = 0;
+    } else {
+       // Check if track is in current playlist
+       const foundIndex = playlist.value.findIndex(t => t.id === track.id);
+       if (foundIndex !== -1) {
+           currentIndex.value = foundIndex;
+       } else {
+           // Not in playlist, replace
+           playlist.value = [track];
+           currentIndex.value = 0;
+       }
     }
 
     currentTrack.value = track;
@@ -182,11 +191,112 @@ export const usePlayerStore = defineStore('player', () => {
     playTrack(playlist.value[nextIndex]);
   };
 
-  const next = () => {
+  const fetchPersonalFm = async () => {
+    if (fmLoading.value) return;
+    fmLoading.value = true;
+    try {
+        if (!apiUrl.value) throw new Error('API URL not set');
+        let baseUrl = apiUrl.value.trim();
+        if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+        const headers = cookie.value ? { Cookie: cookie.value } : {};
+
+        const res = await proxyRequest(`${baseUrl}/personal_fm?timestamp=${Date.now()}`, 'GET', headers, {});
+        if (res.data?.data) {
+            const newTracks = res.data.data;
+            personalFm.value.push(...newTracks);
+            
+            // If in FM mode, sync with playlist
+            if (playMode.value === 'fm') {
+                // If playlist was empty or we are appending
+                // We should append these to the playlist
+                // But avoid duplicates just in case
+                const existingIds = new Set(playlist.value.map(t => t.id));
+                const toAdd = newTracks.filter((t: Track) => !existingIds.has(t.id));
+                playlist.value.push(...toAdd);
+                
+                // If we were not playing, start playing
+                if (!currentTrack.value && playlist.value.length > 0) {
+                    playTrack(playlist.value[0]);
+                }
+            }
+        }
+    } catch (e) {
+        console.error('Failed to fetch personal FM', e);
+    } finally {
+        fmLoading.value = false;
+    }
+  };
+
+  const next = async () => {
+    if (playMode.value === 'fm') {
+      if (personalFm.value.length === 0) {
+        await fetchPersonalFm();
+      } else {
+        let nextIndex = currentIndex.value + 1;
+        
+        // If we are running out of songs (e.g. only 1 left), fetch more
+        if (playlist.value.length - nextIndex <= 1) {
+            await fetchPersonalFm(); // This appends to personalFm and playlist
+        }
+
+        // Check again after fetch
+        if (nextIndex >= playlist.value.length) {
+            // Should not happen if fetch works
+            return; 
+        }
+        
+        playTrack(playlist.value[nextIndex]);
+      }
+      return;
+    }
+
     if (playlist.value.length <= 1) return;
     let nextIndex = currentIndex.value + 1;
     if (nextIndex >= playlist.value.length) nextIndex = 0;
     playTrack(playlist.value[nextIndex]);
+  };
+
+  const playFm = async () => {
+      playMode.value = 'fm';
+      
+      // If we already have FM tracks, use them
+      if (personalFm.value.length > 0 && playlist.value.length > 0 && playlist.value[0].id === personalFm.value[0].id) {
+          // Already loaded FM
+          if (!isPlaying.value) togglePlay();
+          return;
+      }
+      
+      // Clear playlist and load FM
+      playlist.value = [];
+      personalFm.value = []; // Reset FM list to get fresh
+      currentIndex.value = -1;
+      
+      await fetchPersonalFm();
+      
+      if (playlist.value.length > 0) {
+          playTrack(playlist.value[0]);
+      }
+  };
+
+  const fmTrash = async () => {
+      if (!currentTrack.value) return;
+      const trackId = currentTrack.value.id;
+      
+      try {
+        if (!apiUrl.value) throw new Error('API URL not set');
+        let baseUrl = apiUrl.value.trim();
+        if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+        const headers = cookie.value ? { Cookie: cookie.value } : {};
+        
+        // /fm_trash?id=xxx
+        await proxyRequest(`${baseUrl}/fm_trash?id=${trackId}&timestamp=${Date.now()}`, 'POST', headers, {});
+        
+        // Play next
+        next();
+      } catch (e) {
+          console.error('Failed to trash FM song', e);
+          ElMessage.error('操作失败');
+      }
   };
 
   const addToQueue = (track: Track) => {
@@ -218,6 +328,10 @@ export const usePlayerStore = defineStore('player', () => {
     prev,
     next,
     addToQueue,
-    viewModeRequest
+    viewModeRequest,
+    playMode,
+    playFm,
+    fmTrash,
+    fetchPersonalFm
   };
 });
