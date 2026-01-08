@@ -12,6 +12,9 @@
 ## 🎉 功能特性
 
 - **实时服务监控**：集成 UptimeRobot API，展示服务状态、响应时间及可用性统计。
+- **可视化热力图**：新增 GitHub 风格的 30 天服务可用性热力图 (UptimeHeatmap)。
+- **故障公告系统**：完整的故障/维护发布与通知流程，支持 WebSocket 实时推送与首页顶部提醒。
+- **在线音乐点播**：内置全局 Mini 播放器，支持雷达/推荐/排行榜/私人FM及智能音频代理。
 - **信息发布**：内置公告系统与应用中心，方便发布通知与资源。
 - **访客统计**：实时追踪在线人数，分析地理位置与设备分布。
 - **后台管理**：全功能后台，支持内容管理、日志查看及环境变量配置。
@@ -33,9 +36,13 @@
 | ![数据概览](public/img/monitor-date.png) | ![接口调试](public/img/monitor-debug.png) |
 
 #### 🎵 音乐模块
-| 歌单详情 | 专辑详情 | 歌手详情 |
-| :-: | :-: | :-: |
-| ![歌单](public/img/monitor-music-gd.png) | ![专辑](public/img/monitor-music-zj.png) | ![歌手](public/img/monitor-music-gs.png) |
+| 音乐概览 | 歌单详情 |
+| :-: | :-: |
+| ![音乐概览](public/music.png) | ![歌单](public/img/monitor-music-gd.png) |
+
+| 专辑详情 | 歌手详情 |
+| :-: | :-: |
+| ![专辑](public/img/monitor-music-zj.png) | ![歌手](public/img/monitor-music-gs.png) |
 
 ### 🔧 后台管理
 
