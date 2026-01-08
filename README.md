@@ -7,7 +7,7 @@
 [![GitHub issues](https://img.shields.io/github/issues/XiaoChuangll/Uptime-Monitor?style=flat-square)](https://github.com/XiaoChuangll/Uptime-Monitor/issues)
 [![GitHub last commit](https://img.shields.io/github/last-commit/XiaoChuangll/Uptime-Monitor?style=flat-square)](https://github.com/XiaoChuangll/Uptime-Monitor/commits/main)
 
-本系统是一个集成了**服务监控**、**信息发布**与**数据统计**的一站式服务平台。基于 Vue 3 + Express + SQLite 开发。
+本系统是一个集成了**服务监控**、**音乐点播**、**信息发布**与**数据统计**的一站式服务平台。基于 Vue 3 + Express + SQLite 开发。
 
 ## 🎉 功能特性
 
