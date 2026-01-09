@@ -77,6 +77,7 @@ export const usePlayerStore = defineStore('player', () => {
   };
 
   const playTrack = async (track: Track, list?: Track[]) => {
+    playMode.value = 'normal';
     if (list) {
       playlist.value = [...list];
       currentIndex.value = list.findIndex(t => t.id === track.id);
