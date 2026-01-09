@@ -33,6 +33,7 @@ export const usePlayerStore = defineStore('player', () => {
   const viewModeRequest = ref(''); // 'mine', 'home', etc.
   const playMode = ref<'normal' | 'fm'>('normal');
   const personalFm = ref<Track[]>([]);
+  const lastFmTrack = ref<Track | null>(null);
   const fmLoading = ref(false);
 
   // HTML Audio Element
@@ -77,7 +78,12 @@ export const usePlayerStore = defineStore('player', () => {
   };
 
   const playTrack = async (track: Track, list?: Track[]) => {
-    playMode.value = 'normal';
+    // Note: Do NOT reset playMode here. Let the caller decide.
+    // If we are in FM mode, this track is an FM track.
+    if (playMode.value === 'fm') {
+        lastFmTrack.value = track;
+    }
+
     if (list) {
       playlist.value = [...list];
       currentIndex.value = list.findIndex(t => t.id === track.id);
@@ -258,18 +264,32 @@ export const usePlayerStore = defineStore('player', () => {
   };
 
   const playFm = async () => {
-      playMode.value = 'fm';
-      
-      // If we already have FM tracks, use them
-      if (personalFm.value.length > 0 && playlist.value.length > 0 && playlist.value[0].id === personalFm.value[0].id) {
-          // Already loaded FM
-          if (!isPlaying.value) togglePlay();
+      // 1. If already playing FM, just toggle
+      if (playMode.value === 'fm' && currentTrack.value && personalFm.value.some(t => t.id === currentTrack.value?.id)) {
+          togglePlay();
           return;
       }
       
-      // Clear playlist and load FM
+      playMode.value = 'fm';
+
+      // 2. Resume from existing FM list if available
+      if (personalFm.value.length > 0) {
+          playlist.value = [...personalFm.value];
+          
+          let trackToPlay = playlist.value[0];
+          // Try to resume last played FM track
+          if (lastFmTrack.value) {
+              const found = playlist.value.find(t => t.id === lastFmTrack.value?.id);
+              if (found) trackToPlay = found;
+          }
+          
+          currentIndex.value = playlist.value.findIndex(t => t.id === trackToPlay.id);
+          await playTrack(trackToPlay);
+          return;
+      }
+      
+      // 3. First time or empty: fetch new
       playlist.value = [];
-      personalFm.value = []; // Reset FM list to get fresh
       currentIndex.value = -1;
       
       await fetchPersonalFm();
@@ -333,6 +353,8 @@ export const usePlayerStore = defineStore('player', () => {
     playMode,
     playFm,
     fmTrash,
-    fetchPersonalFm
+    fetchPersonalFm,
+    lastFmTrack,
+    personalFm
   };
 });

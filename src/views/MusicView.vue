@@ -484,17 +484,24 @@ const currentDay = ref(new Date().getDate());
 
 // FM Logic
 const fmTrack = computed(() => {
+  // If we have a last played FM track, always show it
+  // unless we are currently playing FM, then show current track
   if (playerStore.playMode === 'fm' && playerStore.currentTrack) {
-    return playerStore.currentTrack;
+    // Check if currentTrack is actually an FM track (to prevent flashing regular songs)
+    const isFmSong = playerStore.personalFm.some((t: any) => t.id === playerStore.currentTrack?.id);
+    if (isFmSong) return playerStore.currentTrack;
   }
-  return null;
+  return playerStore.lastFmTrack;
 });
 
 const handleFmPlay = async (e?: Event) => {
   e?.stopPropagation();
+  // If currently in FM mode, toggle play
   if (playerStore.playMode === 'fm') {
     playerStore.togglePlay();
   } else {
+    // If not in FM mode, switch to FM mode
+    // If we have a last FM track, try to resume it or just play FM
     await playerStore.playFm();
   }
 };
@@ -1094,6 +1101,9 @@ const openArtist = async (artist: any) => {
 };
 
 const playSong = (song: any) => {
+    // Switch to normal mode when playing regular songs
+    playerStore.playMode = 'normal';
+
     // Standardize track object
     const track = {
         id: song.id,
