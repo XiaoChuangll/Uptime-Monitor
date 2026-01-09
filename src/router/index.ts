@@ -5,6 +5,7 @@ const MusicView = () => import('../views/MusicView.vue');
 const AppsView = () => import('../views/AppsView.vue');
 const AboutView = () => import('../views/AboutView.vue');
 const FriendLinksView = () => import('../views/admin/FriendLinksView.vue');
+// const MusicApisAdminView = () => import('../views/admin/MusicApisAdminView.vue');
 const GroupChatsView = () => import('../views/admin/GroupChatsView.vue');
 const AppsAdminView = () => import('../views/admin/AppsAdminView.vue');
 const AnnouncementsView = () => import('../views/admin/AnnouncementsView.vue');

@@ -118,14 +118,14 @@ import { useRouter } from 'vue-router';
 import { onMounted, onUnmounted, ref, computed } from 'vue';
 import { useLayoutStore } from '../stores/layout';
 import { Link, ArrowRight, StarFilled } from '@element-plus/icons-vue';
-import { getAboutPage, type AboutPageData } from '../services/api';
+import { getAboutPage, type AboutPage } from '../services/api';
 import axios from 'axios';
 import '@vueup/vue-quill/dist/vue-quill.snow.css'; // Import Quill styles for content rendering
 import 'github-markdown-css/github-markdown.css';
 
 const router = useRouter();
 const layoutStore = useLayoutStore();
-const aboutData = ref<AboutPageData>({});
+const aboutData = ref<AboutPage>({ id: 0, version: '', author_name: '', author_avatar: '', author_github: '', github_repo: '', content_html: '', content_markdown: '' });
 const commits = ref<any[]>([]);
 const commitsLoading = ref(false);
 const commitsExpanded = ref(false);
@@ -261,6 +261,7 @@ const fetchData = async () => {
   } else {
     // Default fallback if no data in DB yet
     aboutData.value = {
+      id: 0,
       content_html: `
         <h2>服务监控系统</h2>
         <p>这是一个基于 Vue 3 + TypeScript + Element Plus 构建的服务监控系统。</p>

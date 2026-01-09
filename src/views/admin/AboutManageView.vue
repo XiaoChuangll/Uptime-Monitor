@@ -119,7 +119,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { getAboutPage, updateAboutPage, uploadFile, type AboutPageData } from '../../services/api';
+import { getAboutPage, updateAboutPage, uploadFile, type AboutPage } from '../../services/api';
 import MarkdownIt from 'markdown-it';
 import { QuillEditor } from '@vueup/vue-quill';
 import '@vueup/vue-quill/dist/vue-quill.snow.css';
@@ -128,7 +128,8 @@ defineProps<{ embedded?: boolean }>();
 const router = useRouter();
 const goBack = () => router.push('/admin');
 
-const form = ref<AboutPageData>({
+const form = ref<AboutPage>({
+  id: 1, // Default ID
   version: '',
   author_name: '',
   author_avatar: '',
@@ -212,8 +213,8 @@ const handleModeChange = (val: boolean) => {
 
 const handleUpload = async (options: any) => {
   try {
-    const url = await uploadFile(options.file);
-    form.value.author_avatar = url;
+    const res = await uploadFile(options.file);
+    form.value.author_avatar = res.url;
     ElMessage.success('上传成功');
   } catch (e) {
     ElMessage.error('上传失败');

@@ -96,7 +96,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { getVisitorStats, getVisitorTrend, exportVisitorLogs, deleteVisitors, type Visitor } from '../../services/api';
+import { getVisitorStats, getVisitorTrend, exportVisitors, batchDeleteVisitors, type Visitor } from '../../services/api';
 import { Download, Delete, Search } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import * as echarts from 'echarts';
@@ -188,7 +188,7 @@ const handleDelete = async () => {
       }
     );
     
-    await deleteVisitors(selectedIds.value);
+    await batchDeleteVisitors(selectedIds.value);
     ElMessage.success('删除成功');
     fetchList();
     selectedIds.value = [];
@@ -296,7 +296,11 @@ const onPageChange = (p: number) => {
 };
 
 const exportCsv = async () => {
-  await exportVisitorLogs();
+  try {
+    await exportVisitors();
+  } catch (error) {
+    ElMessage.error('导出失败');
+  }
 };
 
 // onMounted moved to top

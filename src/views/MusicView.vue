@@ -462,16 +462,14 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { useMonitorStore } from '../stores/monitor';
 import { usePlayerStore } from '../stores/player';
 import { useLayoutStore } from '../stores/layout';
-import { proxyRequest } from '../services/api';
+import { proxyRequest, getMusicApis } from '../services/api';
 import { musicCache } from '../utils/cache'; // Import CacheManager
 import { ElMessage } from 'element-plus';
 import { Search, Loading, Headset, VideoPlay, Download, ArrowRight, Refresh, ArrowDown, Calendar, Star, CaretRight, Delete, VideoPause, Collection, RefreshRight } from '@element-plus/icons-vue';
 
 const router = useRouter();
-const monitorStore = useMonitorStore();
 const playerStore = usePlayerStore();
 const layoutStore = useLayoutStore();
 const pageHeaderRef = ref<HTMLElement | null>(null);
@@ -758,60 +756,47 @@ const handleLikedMusic = async () => {
 // --- API Selection Logic ---
 const findBestApi = async () => {
   checkingApi.value = true;
-  if (monitorStore.monitors.length === 0) {
-    await monitorStore.fetchMonitors();
-  }
-
-  // Filter candidates: Type 1 (HTTP) and Status 2 (Up)
-  const candidates = monitorStore.monitors.filter(m => m.type === 1 && m.status === 2);
-  
-  if (candidates.length === 0) {
-      checkingApi.value = false;
-      ElMessage.error('未找到可用的 API 线路');
-      return;
-  }
-
-  // Ping candidates
-  let bestApi = null;
-  // let minLatency = Infinity;
-
-  const checks = candidates.map(async (m) => {
-      const start = Date.now();
-      try {
-          // Try /banner as a lightweight check
-          let baseUrl = m.url.trim();
+  try {
+      const apis = await getMusicApis();
+      
+      const valid = apis.map((api: any) => {
+          let baseUrl = api.url.trim();
           if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+          return {
+              ...api,
+              baseUrl,
+              friendly_name: api.name // Map name to friendly_name for UI
+          };
+      });
+
+      if (valid.length > 0) {
+          availableApis.value = valid;
           
-          const res = await proxyRequest(`${baseUrl}/banner`, 'GET', {}, null);
-          if (res.status === 200 && res.data?.banners) {
-              const latency = Date.now() - start;
-              return { ...m, latency, baseUrl };
+          // Default to the first one (backend already sorts by latency)
+          let bestApi = valid[0];
+          
+          // Try to restore from playerStore if available
+          if (playerStore.apiUrl) {
+             const savedUrl = playerStore.apiUrl.trim().replace(/\/$/, '');
+             const found = valid.find(a => a.baseUrl === savedUrl);
+             if (found) bestApi = found;
           }
-      } catch (e) {
-          // Ignore failed
+          
+          currentApi.value = bestApi;
+          playerStore.setApiUrl(bestApi.url);
+          
+          // Init data
+          initData();
+      } else {
+          ElMessage.error('无可用 API 接口，请在后台添加');
+          availableApis.value = [];
       }
-      return null;
-  });
-
-  const results = await Promise.all(checks);
-  const valid = results.filter(r => r !== null) as any[];
-
-  if (valid.length > 0) {
-      // Sort by latency
-      valid.sort((a, b) => a.latency - b.latency);
-      availableApis.value = valid;
-      
-      bestApi = valid[0];
-      currentApi.value = bestApi;
-      playerStore.setApiUrl(bestApi.url);
-      
-      // Init data
-      initData();
-  } else {
-      ElMessage.error('所有线路均不可用');
-      availableApis.value = [];
+  } catch (e) {
+      console.error('Failed to load music APIs:', e);
+      ElMessage.error('加载接口列表失败');
+  } finally {
+      checkingApi.value = false;
   }
-  checkingApi.value = false;
 };
 
 const handleSwitchApi = (api: any) => {
@@ -1280,28 +1265,8 @@ const handleScroll = () => {
 onMounted(async () => {
     document.documentElement.classList.add('no-scrollbar');
     
-    // Try to restore API from store
-    let restored = false;
-    if (playerStore.apiUrl) {
-        if (monitorStore.monitors.length === 0) {
-            try { await monitorStore.fetchMonitors(); } catch (e) {}
-        }
-        
-        const normalize = (u: string) => u.trim().replace(/\/$/, '');
-        const targetUrl = normalize(playerStore.apiUrl);
-        const existingApi = monitorStore.monitors.find(m => normalize(m.url) === targetUrl);
-        
-        if (existingApi) {
-            currentApi.value = existingApi;
-            checkingApi.value = false;
-            initData();
-            restored = true;
-        }
-    }
-
-    if (!restored) {
-        findBestApi();
-    }
+    // Load APIs
+    findBestApi();
 
     window.addEventListener('scroll', handleScroll);
     window.addEventListener('resize', checkMobile);

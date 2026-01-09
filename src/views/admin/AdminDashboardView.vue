@@ -6,6 +6,9 @@
       </template>
     </el-page-header>
     <el-tabs v-model="active" type="border-card">
+      <el-tab-pane label="接口管理" name="music-apis">
+        <MusicApisAdminView :embedded="true" />
+      </el-tab-pane>
       <el-tab-pane label="链接管理" name="links">
         <FriendLinksView :embedded="true" />
       </el-tab-pane>
@@ -48,6 +51,7 @@
   import { useRouter } from 'vue-router';
   import { useLayoutStore } from '../../stores/layout';
   import FriendLinksView from './FriendLinksView.vue';
+import MusicApisAdminView from './MusicApisAdminView.vue';
   import GroupChatsView from './GroupChatsView.vue';
   import AppsAdminView from './AppsAdminView.vue';
   import AnnouncementsView from './AnnouncementsView.vue';
@@ -59,7 +63,7 @@ import ChangelogsAdminView from './ChangelogsAdminView.vue';
 import SiteCardsAdminView from './SiteCardsAdminView.vue';
 import AboutManageView from './AboutManageView.vue';
 
-const active = ref<'links' | 'groups' | 'apps' | 'announcements' | 'env' | 'visitors' | 'logs' | 'changelogs' | 'site-cards' | 'about' | 'incidents'>('links');
+const active = ref<'links' | 'groups' | 'apps' | 'announcements' | 'env' | 'visitors' | 'logs' | 'changelogs' | 'site-cards' | 'about' | 'incidents' | 'music-apis'>('music-apis');
 const router = useRouter();
   const layoutStore = useLayoutStore();
   const pageHeaderRef = ref<HTMLElement | null>(null);

@@ -127,7 +127,7 @@ app.use((req, res, next) => {
 
 // API Proxy for debugging
 app.post('/api/proxy-request', async (req, res) => {
-  const { url, method = 'GET', headers = {}, body = null } = req.body;
+  const { url, method = 'GET', headers = {}, data = null, body = null } = req.body;
 
   if (!url) {
     return res.status(400).json({ error: 'URL is required' });
@@ -142,7 +142,7 @@ app.post('/api/proxy-request', async (req, res) => {
         // Remove host header to avoid conflicts, axios/node handles it
         host: undefined
       },
-      data: body,
+      data: data || body,
       timeout: 10000, // 10s timeout
       validateStatus: () => true // Resolve all status codes
     };
@@ -1361,6 +1361,130 @@ app.post('/api/auth/change-password', requireAuth, (req, res) => {
       res.json({ ok: true });
     });
   });
+});
+
+// Music APIs Management
+
+// Public: Get usable music APIs
+app.get('/api/music/apis', (req, res) => {
+  db.all(
+    `SELECT * FROM music_apis WHERE enabled = 1 ORDER BY CASE WHEN status='active' THEN 0 ELSE 1 END, latency ASC, id ASC`, 
+    [], 
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ items: rows });
+    }
+  );
+});
+
+// Admin: Get all music APIs
+app.get('/api/admin/music/apis', requireAuth, (req, res) => {
+  db.all(`SELECT * FROM music_apis ORDER BY id DESC`, [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ items: rows });
+  });
+});
+
+// Admin: Add music API
+app.post('/api/admin/music/apis', requireAuth, (req, res) => {
+  const { name, url, type, enabled = 1 } = req.body;
+  if (!name || !url) return res.status(400).json({ error: 'Name and URL are required' });
+  
+  db.run(
+    `INSERT INTO music_apis (name, url, type, enabled) VALUES (?,?,?,?)`,
+    [name, url, type || 'netease', enabled],
+    function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      const id = this.lastID;
+      logAction(req.user?.username, 'create', 'music_apis', id, { name, url });
+      res.json({ id });
+    }
+  );
+});
+
+// Admin: Update music API
+app.put('/api/admin/music/apis/:id', requireAuth, (req, res) => {
+  const id = Number(req.params.id);
+  const { name, url, type, enabled } = req.body;
+  
+  db.run(
+    `UPDATE music_apis SET name=?, url=?, type=?, enabled=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+    [name, url, type, enabled, id],
+    function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      logAction(req.user?.username, 'update', 'music_apis', id, { name, url });
+      res.json({ changed: this.changes });
+    }
+  );
+});
+
+// Admin: Delete music API
+app.delete('/api/admin/music/apis/:id', requireAuth, (req, res) => {
+  const id = Number(req.params.id);
+  db.run(`DELETE FROM music_apis WHERE id=?`, [id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    logAction(req.user?.username, 'delete', 'music_apis', id);
+    res.json({ deleted: this.changes });
+  });
+});
+
+// Admin: Check music API
+app.post('/api/admin/music/apis/check', requireAuth, async (req, res) => {
+  const { id } = req.body;
+  
+  const checkUrl = async (url) => {
+    const start = Date.now();
+    try {
+      // Clean URL
+      const targetUrl = url.replace(/\/$/, '');
+      // Use /banner as a lightweight check endpoint or /search
+      const response = await axios.get(`${targetUrl}/banner`, { timeout: 5000 });
+      const latency = Date.now() - start;
+      if (response.status === 200 && response.data.code === 200) {
+        return { status: 'active', latency };
+      }
+      return { status: 'error', latency: 0 };
+    } catch (e) {
+      return { status: 'error', latency: 0 };
+    }
+  };
+
+  if (id) {
+    // Check specific API
+    db.get(`SELECT * FROM music_apis WHERE id=?`, [id], async (err, row) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!row) return res.status(404).json({ error: 'API not found' });
+      
+      const result = await checkUrl(row.url);
+      db.run(
+        `UPDATE music_apis SET status=?, latency=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+        [result.status, result.latency, id],
+        function(e2) {
+          if (e2) return res.status(500).json({ error: e2.message });
+          res.json({ ...result, id });
+        }
+      );
+    });
+  } else {
+    // Check all enabled APIs
+    db.all(`SELECT * FROM music_apis`, [], async (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      
+      const results = [];
+      for (const row of rows) {
+        const result = await checkUrl(row.url);
+        await new Promise((resolve) => {
+          db.run(
+            `UPDATE music_apis SET status=?, latency=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+            [result.status, result.latency, row.id],
+            () => resolve()
+          );
+        });
+        results.push({ id: row.id, ...result });
+      }
+      res.json({ results });
+    });
+  }
 });
 
 // SPA Fallback - Must be last
