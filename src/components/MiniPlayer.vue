@@ -1,5 +1,8 @@
 <template>
   <Teleport to="body">
+    <!-- Playlist Mask -->
+    <div v-if="showPlaylist" class="playlist-mask" @click="showPlaylist = false"></div>
+
     <transition name="fade">
       <div 
         v-if="store.showPlayer && store.currentTrack" 
@@ -19,14 +22,19 @@
       </div>
 
       <div v-else class="player-content">
+        <!-- Water Fill Background -->
+        <div class="water-fill-container">
+           <div class="water-fill" :style="{ width: `${progressPercentage}%` }">
+              <div class="water-wave"></div>
+           </div>
+        </div>
+
         <!-- Progress Bar at Top -->
         <div class="progress-bar-container" 
              @click.stop="handleProgressClick"
              @mousemove="handleProgressHover"
              @mouseleave="handleProgressLeave"
         >
-           <div class="progress-bg"></div>
-           <div class="progress-fill" :style="{ width: `${progressPercentage}%` }"></div>
            <div class="progress-handle" :style="{ left: `${progressPercentage}%` }"></div>
         </div>
 
@@ -51,7 +59,7 @@
 
         <!-- Controls -->
         <div class="player-controls">
-          <el-button circle size="small" link @click="store.prev">
+          <el-button circle size="small" link @click.stop="store.prev">
             <el-icon><ArrowLeft /></el-icon>
           </el-button>
           
@@ -61,29 +69,49 @@
             <el-icon v-else><VideoPlay /></el-icon>
           </el-button>
 
-          <el-button circle size="small" link @click="store.next">
+          <el-button circle size="small" link @click.stop="store.next">
             <el-icon><ArrowRight /></el-icon>
           </el-button>
         </div>
 
-        <!-- Volume & Close -->
+        <!-- Playlist & Close -->
         <div class="player-actions">
-           <el-popover placement="top" :width="200" trigger="click">
-              <template #reference>
-                <el-button circle link>
-                   <el-icon><Headset /></el-icon>
-                </el-button>
-              </template>
-              <div class="volume-control">
-                 <span>音量</span>
-                 <el-slider v-model="volumeSync" :max="1" :step="0.01" @input="store.setVolume" />
-              </div>
-           </el-popover>
+           <el-button circle link @click.stop="togglePlaylist">
+              <el-icon><List /></el-icon>
+           </el-button>
            
            <el-button circle link @click.stop="toggleMinimize">
              <el-icon><Close /></el-icon>
            </el-button>
         </div>
+
+        <!-- Custom Playlist Panel -->
+        <transition name="playlist-fade">
+          <div v-if="showPlaylist" class="custom-playlist-panel" @click.stop ref="playlistRef">
+             <div class="playlist-header">
+                <span>播放列表 ({{ store.playlist.length }})</span>
+                <el-button link type="primary" size="small" @click="store.playlist = []" v-if="store.playlist.length">清空</el-button>
+             </div>
+             <div class="playlist-scroll">
+               <div 
+                  v-for="track in store.playlist" 
+                  :key="track.id" 
+                  class="playlist-item"
+                  :class="{ active: store.currentTrack?.id === track.id }"
+                  @click="store.playTrack(track)"
+               >
+                  <div class="playlist-info">
+                     <div class="playlist-name">{{ track.name }}</div>
+                     <div class="playlist-artist">{{ getArtistName(track) }}</div>
+                  </div>
+                  <el-icon v-if="store.currentTrack?.id === track.id" class="playing-icon"><VideoPlay /></el-icon>
+               </div>
+               <div v-if="store.playlist.length === 0" class="empty-playlist">
+                  暂无歌曲
+               </div>
+             </div>
+          </div>
+        </transition>
       </div>
     </div>
     </transition>
@@ -93,19 +121,43 @@
 <script setup lang="ts">
 import { computed, ref, watch, nextTick, onUnmounted, onMounted } from 'vue';
 import { usePlayerStore } from '../stores/player';
-import { VideoPlay, VideoPause, ArrowLeft, ArrowRight, Close, Headset, Loading } from '@element-plus/icons-vue';
+import { useRouter, useRoute } from 'vue-router';
+import { VideoPlay, VideoPause, ArrowLeft, ArrowRight, Close, Headset, Loading, List } from '@element-plus/icons-vue';
 
 const store = usePlayerStore();
+const router = useRouter();
+const route = useRoute();
 const isDragging = ref(false);
 const currentTimeSync = ref(0);
 const volumeSync = ref(0.5);
 const isMinimized = ref(false);
 const footerOverlap = ref(0);
 const playerRef = ref<HTMLElement | null>(null);
+const playlistRef = ref<HTMLElement | null>(null);
 const isMobile = ref(false);
+const showPlaylist = ref(false);
+
+const getArtistName = (song: any) => (song.ar || song.artists || []).map((a: any) => a.name).join(', ');
+
+const togglePlaylist = () => {
+  showPlaylist.value = !showPlaylist.value;
+};
+
+// Mask handles click outside
+/* const closePlaylist = (e: MouseEvent) => {
+  if (showPlaylist.value) {
+    const target = e.target as HTMLElement;
+    // Check if click is inside playlist
+    const playlistEl = playlistRef.value;
+    if (playlistEl && !playlistEl.contains(target)) {
+      showPlaylist.value = false;
+    }
+  }
+}; */
 
 watch(() => store.showPlayer && store.currentTrack, async () => {
   // Reset minimized state when track changes or player shows up
+  nextTick(checkFooterOverlap);
 }, { immediate: true });
 
 const checkMobile = () => {
@@ -117,8 +169,14 @@ const toggleMinimize = () => {
 };
 
 const handlePlayerClick = () => {
+  if (showPlaylist.value) {
+    showPlaylist.value = false;
+    return;
+  }
   if (isMinimized.value) {
     toggleMinimize();
+  } else if (route.path !== '/music') {
+    router.push('/music');
   }
 };
 
@@ -131,15 +189,13 @@ const checkFooterOverlap = () => {
   
   if (footerRect.top < viewportHeight) {
     // Footer is visible in viewport
-    if (playerRef.value) {
-       const footerVisibleHeight = viewportHeight - footerRect.top;
-       // Add padding (10px for mobile, 20px for desktop)
-       const padding = isMobile.value ? 12 : 20;
-       const newOverlap = footerVisibleHeight > 0 ? footerVisibleHeight + padding : 0;
-       
-       if (footerOverlap.value !== newOverlap) {
-         footerOverlap.value = newOverlap;
-       }
+    const footerVisibleHeight = viewportHeight - footerRect.top;
+    // Add padding (10px for mobile, 20px for desktop)
+    const padding = isMobile.value ? 12 : 20;
+    const newOverlap = footerVisibleHeight > 0 ? footerVisibleHeight + padding : 0;
+    
+    if (footerOverlap.value !== newOverlap) {
+      footerOverlap.value = newOverlap;
     }
   } else {
     // Footer is not visible
@@ -151,6 +207,7 @@ onMounted(() => {
   window.addEventListener('scroll', checkFooterOverlap);
   window.addEventListener('resize', checkFooterOverlap);
   window.addEventListener('resize', checkMobile);
+  // window.addEventListener('click', closePlaylist);
   checkMobile();
   // Initial check
   nextTick(checkFooterOverlap);
@@ -160,26 +217,30 @@ onUnmounted(() => {
   window.removeEventListener('scroll', checkFooterOverlap);
   window.removeEventListener('resize', checkFooterOverlap);
   window.removeEventListener('resize', checkMobile);
+  // window.removeEventListener('click', closePlaylist);
 });
 
 const playerStyle = computed(() => {
-  // Mobile default bottom: 10px (close to bottom edge)
-  // Desktop default bottom: 20px
-  const baseBottom = isMobile.value ? 10 : 20;
+  // Mobile default bottom: 30px (close to bottom edge)
+  // Desktop default bottom: 30px
+  const baseBottom = isMobile.value ? 30 : 30;
   let bottomVal = baseBottom;
   
   // If footer overlaps, we lift it up
   if (footerOverlap.value > 0) {
-    // If overlap is greater than base, use overlap.
-    // Basically we want max(baseBottom, footerOverlap)
-    // But footerOverlap is distance from bottom of screen to top of footer + 20px padding.
-    // So if footer is 100px visible, overlap is 120.
-    // We want player bottom to be 120.
     if (footerOverlap.value > baseBottom) {
         bottomVal = footerOverlap.value;
     }
   }
   
+  // Safety cap: ensure player doesn't go off-screen (top)
+  // Assuming player height is around 80px + margin
+  // Keep at least 60px (header) + 20px from top
+  const maxBottom = window.innerHeight - 100;
+  if (bottomVal > maxBottom) {
+      bottomVal = maxBottom;
+  }
+
   return {
     bottom: `${bottomVal}px`
   };
@@ -245,6 +306,107 @@ const artistName = computed(() => {
 
 </script>
 
+<style>
+.custom-playlist-panel {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  margin-bottom: 12px;
+  background-color: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  max-height: 400px;
+  z-index: 999;
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+}
+
+.playlist-fade-enter-active,
+.playlist-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.playlist-fade-enter-from,
+.playlist-fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.playlist-popper {
+  padding: 0 !important;
+}
+.playlist-container {
+  display: flex;
+  flex-direction: column;
+  max-height: 400px;
+}
+.playlist-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 600;
+}
+.playlist-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+.playlist-scroll::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Webkit */
+}
+.playlist-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background-color 0.2s;
+}
+.playlist-item:hover {
+  background-color: var(--el-fill-color-light);
+}
+.playlist-item.active {
+  color: var(--el-color-primary);
+}
+.playlist-info {
+  flex: 1;
+  min-width: 0;
+  margin-right: 12px;
+}
+.playlist-name {
+  font-size: 13px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.playlist-artist {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.playlist-item.active .playlist-artist {
+  color: var(--el-color-primary-light-3);
+}
+.empty-playlist {
+  padding: 32px 0;
+  text-align: center;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+}
+</style>
+
 <style scoped>
 .mini-player {
   position: fixed;
@@ -258,11 +420,20 @@ const artistName = computed(() => {
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.1);
   padding: 10px 20px;
-  z-index: 1000;
+  z-index: 2001; /* Above mask */
   backdrop-filter: blur(10px);
   user-select: none;
   transition: width 0.3s ease, height 0.3s ease, border-radius 0.3s ease, left 0.3s ease, bottom 0.3s ease, transform 0.3s ease;
-  overflow: hidden;
+}
+
+.playlist-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 2000;
+  background: transparent;
 }
 
 .mini-player.minimized {
@@ -274,6 +445,7 @@ const artistName = computed(() => {
   right: 20px;
   transform: translateX(0);
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  overflow: hidden;
 }
 
 @media (max-width: 768px) {
@@ -368,22 +540,10 @@ const artistName = computed(() => {
   height: 4px;
   cursor: pointer;
   z-index: 10;
+  overflow: hidden;
+  border-radius: 12px 12px 0 0;
 }
 
-.progress-bg {
-  width: 100%;
-  height: 100%;
-  background-color: var(--el-border-color-lighter);
-}
-
-.progress-fill {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  background-color: var(--el-color-primary);
-  transition: width 0.1s linear;
-}
 
 .progress-handle {
   position: absolute;
@@ -513,5 +673,34 @@ const artistName = computed(() => {
   opacity: 0;
 }
 
+/* Water Fill Styles */
+.water-fill-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  z-index: -1;
+  pointer-events: none;
+}
 
+.water-fill {
+  height: 100%;
+  background: linear-gradient(to right, var(--el-color-primary-light-9) 0%, var(--el-color-primary-light-8) 100%);
+  position: relative;
+  transition: width 0.1s linear;
+}
+
+.water-wave {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  width: 4px;
+  height: 100%;
+  background: var(--el-color-primary-light-5);
+  box-shadow: 0 0 8px var(--el-color-primary-light-3);
+  opacity: 0.6;
+}
 </style>

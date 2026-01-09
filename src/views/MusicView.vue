@@ -48,6 +48,9 @@
          <el-tooltip content="重新检测最佳线路" placement="top" v-if="!currentApi && !checkingApi">
             <el-button circle size="small" :icon="Refresh" @click="findBestApi" />
          </el-tooltip>
+         <el-tooltip content="刷新数据缓存" placement="top" v-if="currentApi">
+            <el-button circle size="small" :icon="RefreshRight" @click="handleRefreshCache" />
+         </el-tooltip>
       </div>
     </div>
 
@@ -417,25 +420,27 @@
 
     <!-- Playlist Detail Dialog -->
     <el-dialog v-model="showPlaylistDialog" :title="currentPlaylist?.name" :width="isMobile ? '95%' : '90%'" class="playlist-dialog" append-to-body>
-        <el-table :data="pagedPlaylistTracks" stripe style="width: 100%" v-loading="playlistLoading" @row-click="playSong">
-           <el-table-column type="index" width="50" :index="(i: number) => (playlistPage - 1) * 10 + i + 1" />
-           <el-table-column prop="name" label="歌曲" min-width="150" show-overflow-tooltip />
-           <el-table-column label="歌手" min-width="120" show-overflow-tooltip>
-              <template #default="{ row }">
-                 {{ getArtistName(row) }}
-              </template>
-           </el-table-column>
-           <el-table-column label="专辑" min-width="120" show-overflow-tooltip v-if="!isMobile">
-              <template #default="{ row }">
-                 {{ row.al?.name || row.album?.name }}
-              </template>
-           </el-table-column>
-           <el-table-column label="操作" width="100" align="center">
-             <template #default="{ row }">
-                <el-button circle size="small" type="primary" :icon="VideoPlay" @click.stop="playSong(row)" />
-             </template>
-           </el-table-column>
+      <div class="playlist-table-wrapper">
+        <el-table :data="pagedPlaylistTracks" stripe style="width: 100%" v-loading="playlistLoading" @row-click="playSong" :row-style="{ height: '50px' }">
+          <el-table-column type="index" :width="isMobile ? 40 : 50" :index="(i: number) => (playlistPage - 1) * 10 + i + 1" />
+          <el-table-column prop="name" label="歌曲" :min-width="isMobile ? 100 : 150" show-overflow-tooltip />
+          <el-table-column label="歌手" :min-width="isMobile ? 80 : 120" show-overflow-tooltip>
+            <template #default="{ row }">
+              {{ getArtistName(row) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="专辑" min-width="120" show-overflow-tooltip v-if="!isMobile">
+            <template #default="{ row }">
+              {{ row.al?.name || row.album?.name }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" :width="isMobile ? 60 : 100" align="center" :fixed="isMobile ? 'right' : false">
+            <template #default="{ row }">
+              <el-button circle size="small" type="primary" :icon="VideoPlay" @click.stop="playSong(row)" />
+            </template>
+          </el-table-column>
         </el-table>
+      </div>
         
         <div class="pagination-container mt-4" v-if="playlistTracks.length > 0">
            <el-pagination
@@ -461,8 +466,9 @@ import { useMonitorStore } from '../stores/monitor';
 import { usePlayerStore } from '../stores/player';
 import { useLayoutStore } from '../stores/layout';
 import { proxyRequest } from '../services/api';
+import { musicCache } from '../utils/cache'; // Import CacheManager
 import { ElMessage } from 'element-plus';
-import { Search, Loading, Headset, VideoPlay, Download, ArrowRight, Refresh, ArrowDown, Calendar, Star, CaretRight, Delete, VideoPause, Collection } from '@element-plus/icons-vue';
+import { Search, Loading, Headset, VideoPlay, Download, ArrowRight, Refresh, ArrowDown, Calendar, Star, CaretRight, Delete, VideoPause, Collection, RefreshRight } from '@element-plus/icons-vue';
 
 const router = useRouter();
 const monitorStore = useMonitorStore();
@@ -822,8 +828,29 @@ const initData = async () => {
   fetchDiscovery();
 };
 
-const fetchDiscovery = async () => {
+const handleRefreshCache = () => {
+    musicCache.remove('discovery_data');
+    fetchDiscovery(true);
+    ElMessage.success('已刷新缓存');
+};
+
+const fetchDiscovery = async (forceRefresh = false) => {
    if (!currentApi.value) return;
+   
+   // Cache Key
+   const CACHE_KEY = 'discovery_data';
+   
+   // Check Cache
+   if (!forceRefresh) {
+       const cached = musicCache.get<any>(CACHE_KEY);
+       if (cached) {
+           console.log('[MusicView] Cache hit for discovery data');
+           radarPlaylists.value = cached.radar;
+           recommendPlaylists.value = cached.recommend;
+           topList.value = cached.topList;
+           return;
+       }
+   }
    
    radarLoading.value = true;
    recommendLoading.value = true;
@@ -838,18 +865,42 @@ const fetchDiscovery = async () => {
            proxyRequest(`${baseUrl}/toplist/detail`, 'GET', {}, null)
        ]);
 
-       if (radarRes.data?.result) radarPlaylists.value = radarRes.data.result;
+       const radar = radarRes.data?.result || [];
+       let recommend = [];
        
-       // Try another endpoint for recommended if logged in, or just more personalized
-       if (recRes.data?.result) recommendPlaylists.value = recRes.data.result; // Just using same for demo if endpoint differs
-       // Actually let's fetch Highquality for recommended
+       // Try Highquality for recommended
        const hqRes = await proxyRequest(`${baseUrl}/top/playlist/highquality?limit=7`, 'GET', {}, null);
-       if (hqRes.data?.playlists) recommendPlaylists.value = hqRes.data.playlists;
+       if (hqRes.data?.playlists) {
+           recommend = hqRes.data.playlists;
+       } else if (recRes.data?.result) {
+           recommend = recRes.data.result;
+       }
 
-       if (topRes.data?.list) topList.value = topRes.data.list;
+       const tops = topRes.data?.list || [];
+
+       radarPlaylists.value = radar;
+       recommendPlaylists.value = recommend;
+       topList.value = tops;
+       
+       // Set Cache
+       musicCache.set(CACHE_KEY, {
+           radar,
+           recommend,
+           topList: tops
+       });
 
    } catch (e) {
        console.error('Fetch discovery failed', e);
+       // Fallback to cache if refresh failed
+       if (forceRefresh) {
+           const cached = musicCache.get<any>(CACHE_KEY);
+           if (cached) {
+               radarPlaylists.value = cached.radar;
+               recommendPlaylists.value = cached.recommend;
+               topList.value = cached.topList;
+               ElMessage.warning('刷新失败，已恢复缓存数据');
+           }
+       }
    } finally {
        radarLoading.value = false;
        recommendLoading.value = false;
@@ -1226,8 +1277,32 @@ const handleScroll = () => {
   }
 };
 
-onMounted(() => {
-    findBestApi();
+onMounted(async () => {
+    document.documentElement.classList.add('no-scrollbar');
+    
+    // Try to restore API from store
+    let restored = false;
+    if (playerStore.apiUrl) {
+        if (monitorStore.monitors.length === 0) {
+            try { await monitorStore.fetchMonitors(); } catch (e) {}
+        }
+        
+        const normalize = (u: string) => u.trim().replace(/\/$/, '');
+        const targetUrl = normalize(playerStore.apiUrl);
+        const existingApi = monitorStore.monitors.find(m => normalize(m.url) === targetUrl);
+        
+        if (existingApi) {
+            currentApi.value = existingApi;
+            checkingApi.value = false;
+            initData();
+            restored = true;
+        }
+    }
+
+    if (!restored) {
+        findBestApi();
+    }
+
     window.addEventListener('scroll', handleScroll);
     window.addEventListener('resize', checkMobile);
     checkMobile();
@@ -1235,6 +1310,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+    document.documentElement.classList.remove('no-scrollbar');
     if (loginTimer) clearTimeout(loginTimer);
     window.removeEventListener('scroll', handleScroll);
     window.removeEventListener('resize', checkMobile);
@@ -1256,7 +1332,7 @@ onUnmounted(() => {
 .pagination-container {
   display: flex;
   justify-content: center;
-  padding-bottom: 150px;
+  padding-bottom: 20px;
 }
 .text-center { text-align: center; }
 .py-10 { padding-top: 40px; padding-bottom: 40px; }
@@ -1277,12 +1353,17 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: flex-start;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
 }
 
 .status-tag-wrapper {
   flex-shrink: 0;
   display: flex;
   align-items: center;
+  justify-content: flex-start;
+  text-align: left;
 }
 
 .api-actions {
@@ -1401,6 +1482,20 @@ onUnmounted(() => {
   box-shadow: none;
   cursor: pointer;
   transition: transform 0.2s;
+  position: relative; /* Ensure relative positioning for ::after */
+}
+.rank-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  pointer-events: none;
+  box-sizing: border-box;
+  z-index: 10;
 }
 .rank-card:hover { transform: translateY(-2px); }
 .rank-cover-wrapper {
@@ -1945,6 +2040,10 @@ onUnmounted(() => {
   width: 140px;
 }
 
+.playlist-table-wrapper {
+  height: 545px;
+}
+
 /* Mobile specific adjustments */
 @media (max-width: 768px) {
   .playlist-grid.mobile-scroll {
@@ -1995,19 +2094,7 @@ onUnmounted(() => {
     scroll-snap-align: start;
   }
 
-  .rank-card::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    border: 4px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    pointer-events: none;
-    box-sizing: border-box;
-    z-index: 10;
-  }
+  /* .rank-card::after style moved to global */
   
   .rank-cover-wrapper {
     width: 80px;

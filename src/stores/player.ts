@@ -67,6 +67,7 @@ export const usePlayerStore = defineStore('player', () => {
 
   const setApiUrl = (url: string) => {
     apiUrl.value = url;
+    localStorage.setItem('player_api_url', url);
   };
 
   const setCookie = (c: string) => {
@@ -337,6 +338,8 @@ export const usePlayerStore = defineStore('player', () => {
     currentTime,
     duration,
     loading,
+    apiUrl,
+    cookie,
     userProfile,
     showLoginDialog,
     setApiUrl,

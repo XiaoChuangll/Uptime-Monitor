@@ -21,9 +21,53 @@ button:focus-visible,
 /* Remove mobile tap highlight color */
 * {
   -webkit-tap-highlight-color: transparent;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+/* Global scrollbar hiding for Webkit */
+::-webkit-scrollbar {
+  display: none;
 }
 
 /* Lower z-index for announcement guide tooltip so it goes under the header */
 .el-popper.header-covered-tooltip {
   z-index: 900 !important;
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Hide scrollbars for all Element Plus Dialogs */
+.el-overlay-dialog::-webkit-scrollbar,
+.el-dialog::-webkit-scrollbar,
+.el-dialog__body::-webkit-scrollbar {
+  display: none;
+}
+
+.el-overlay-dialog,
+.el-dialog,
+.el-dialog__body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* Hide Element Plus custom scrollbars in dialogs */
+.el-dialog .el-scrollbar__bar {
+  display: none !important;
+}
+
+/* Prevent layout shift when dialog opens (Element Plus adds padding-right to body) */
+html.el-popup-parent--hidden,
+body.el-popup-parent--hidden {
+  padding-right: 0 !important;
+  margin-right: 0 !important;
+  overflow: hidden !important;
+  width: 100% !important;
 }
