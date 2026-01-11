@@ -58,7 +58,7 @@
     <div class="music-content" v-loading="loading">
       
       <!-- Search -->
-      <el-card class="mb-4 search-card" shadow="hover" v-if="viewMode === 'home'">
+      <el-card class="mb-4 search-card" shadow="hover" v-if="viewMode === 'home' || viewMode === 'mine'">
          <div class="search-box">
              <el-input 
                v-model="searchKeyword" 
@@ -145,254 +145,397 @@
       <!-- Discovery Sections (Only show when no search) -->
       <template v-if="searchResults.length === 0">
 
-        <!-- Personalized Recommendations V2 -->
-      <div class="section mb-4" v-if="viewMode === 'home'">
+        <!-- Greet Section (Home/Mine) -->
+      <div class="section mb-4" v-if="viewMode === 'home' || viewMode === 'mine'">
          <div class="greet-section mb-3">
-            <h2 class="greet-title">{{ greeting }}{{ playerStore.userProfile ? '，' + playerStore.userProfile.nickname : '' }}</h2>
-            <div class="greet-subtitle">由此开启好心情 ~</div>
-         </div>
-         
-         <div class="personalized-grid-v2">
-            <!-- Left Column -->
-            <div class="left-col">
-               <!-- Daily Recommend -->
-               <div class="personalized-card-v2 daily-card-v2" @click="handleDailyRecommend">
-                  <div class="card-icon-wrapper">
-                     <el-icon :size="40" class="daily-icon"><Calendar /></el-icon>
-                     <span class="daily-date">{{ currentDay }}</span>
-                  </div>
-                  <div class="card-text-v2">
-                     <div class="card-title-v2">每日推荐</div>
-                     <div class="card-desc-v2">根据你的音乐口味 · 每日更新</div>
-                  </div>
-               </div>
+            <div class="flex-between-center">
+               <h2 class="greet-title">{{ greeting }}{{ playerStore.userProfile ? '，' + playerStore.userProfile.nickname : '' }}</h2>
                
-               <!-- Liked Music -->
-               <div class="personalized-card-v2 like-card-v2" @click="handleLikedMusic">
-                  <div class="card-icon-wrapper like-icon-wrapper">
-                     <el-image v-if="likedPlaylistCover" :src="likedPlaylistCover" class="like-cover" fit="cover" />
-                     <template v-else>
-                        <div class="like-bg-stack"></div>
-                        <el-icon :size="24" class="like-icon"><Star /></el-icon>
-                     </template>
-                  </div>
-                  <div class="card-text-v2">
-                     <div class="card-title-v2">喜欢的音乐</div>
-                     <div class="card-desc-v2">发现你独特的音乐品味</div>
-                  </div>
-               </div>
+               <el-radio-group v-model="mainTab" size="small" class="custom-switch" @change="handleMainTabChange">
+                  <el-radio-button label="home">首页</el-radio-button>
+                  <el-radio-button label="mine">歌单</el-radio-button>
+               </el-radio-group>
             </div>
-
-            <!-- Right Column: Private FM -->
-          <div class="right-col fm-card-v2" @click="handleFmPlay">
-            <div class="fm-bg-blur" :style="{ backgroundImage: `url(${(fmTrack && getCover(fmTrack)) || 'https://p2.music.126.net/6y-UleORITEDbvrOLV0Q8A==/5639395138885805.jpg'})` }"></div>
-            <div class="fm-content">
-              <div class="fm-cover-wrapper">
-                <el-image :src="(fmTrack && getCover(fmTrack)) || 'https://p2.music.126.net/6y-UleORITEDbvrOLV0Q8A==/5639395138885805.jpg'" class="fm-cover" fit="cover">
-                  <template #placeholder><div class="fm-cover-placeholder"></div></template>
-                </el-image>
-                <div class="fm-tag">私人 FM</div>
+            <div class="greet-subtitle">由此开启好心情 ~</div>
+            
+            <!-- Secondary Switcher for Mine View -->
+            <div v-if="viewMode === 'mine'" class="mt-3">
+               <el-radio-group v-model="mineSubMode" size="small">
+                  <el-radio-button label="playlist">歌单</el-radio-button>
+                    <el-radio-button label="podcast">播客</el-radio-button>
+                 </el-radio-group>
               </div>
-              <div class="fm-info-controls">
-                     <div class="fm-info">
-                        <div class="fm-title">{{ fmTrack?.name || '私人FM' }}</div>
-                        <div class="fm-artist">
-                           <el-icon><Headset /></el-icon> {{ fmTrack ? getArtistName(fmTrack) : '听见喜欢的音乐' }}
-                        </div>
-                        <div class="fm-album" v-if="fmTrack">
-                           <el-icon><Collection /></el-icon> {{ fmTrack?.al?.name || fmTrack?.album?.name || '未知专辑' }}
-                        </div>
-                     </div>
-                     
-                     <div class="fm-controls">
-                        <el-button circle size="large" class="fm-btn-play" @click.stop="handleFmPlay">
-                           <el-icon :size="24" v-if="playerStore.playMode === 'fm' && playerStore.isPlaying"><VideoPause /></el-icon>
-                           <el-icon :size="24" v-else><VideoPlay /></el-icon>
-                        </el-button>
-                        <el-button circle class="fm-btn-sub fm-btn-next" @click.stop="handleFmNext">
-                           <el-icon :size="20"><CaretRight /></el-icon>
-                        </el-button>
-                        <el-button circle class="fm-btn-sub fm-btn-trash" @click.stop="handleFmTrash">
-                           <el-icon :size="18"><Delete /></el-icon>
-                        </el-button>
-                     </div>
-                  </div>
-               </div>
-            </div>
          </div>
       </div>
-        
-        <!-- Radar Playlist -->
-        <div class="section mb-4" v-if="viewMode === 'home' || viewMode === 'radar'">
-           <div class="section-header">
-              <h3 @click="viewMode === 'home' && openMore('radar')" :class="{ 'cursor-pointer': viewMode === 'home' }">雷达歌单</h3>
-              <el-button link v-if="viewMode === 'home'" @click="openMore('radar')">更多 <el-icon><ArrowRight /></el-icon></el-button>
-           </div>
-           <el-skeleton :loading="radarLoading || radarPlaylists.length === 0" animated :count="1">
-             <template #template>
-               <div class="playlist-grid" :class="{ 'mobile-scroll': viewMode === 'home' }">
-                 <div v-for="i in (viewMode === 'home' ? 7 : 12)" :key="i" class="playlist-card">
-                   <div class="cover-wrapper">
-                     <el-skeleton-item variant="image" style="width: 100%; height: 100%;" />
-                   </div>
-                   <el-skeleton-item variant="text" style="width: 80%" />
-                 </div>
-               </div>
-             </template>
-             <template #default>
-               <div class="playlist-grid" :class="{ 'mobile-scroll': viewMode === 'home' }">
-                   <div v-for="list in (viewMode === 'home' ? radarPlaylists.slice(0, 7) : radarPlaylists)" :key="list.id" class="playlist-card" @click="openPlaylist(list)">
-                      <div class="cover-wrapper">
-                         <el-image :src="list.coverImgUrl || list.picUrl" class="playlist-cover" lazy />
-                         <div class="play-count"><el-icon><Headset /></el-icon> {{ formatCount(list.playCount) }}</div>
-                      </div>
-                      <div class="playlist-name">{{ list.name }}</div>
-                   </div>
-                </div>
-             </template>
-           </el-skeleton>
-        </div>
 
-        <!-- Recommended Playlist -->
-        <div class="section mb-4" v-if="viewMode === 'home' || viewMode === 'recommend'">
-           <div class="section-header">
-              <h3 @click="viewMode === 'home' && openMore('recommend')" :class="{ 'cursor-pointer': viewMode === 'home' }">推荐歌单</h3>
-              <el-button link v-if="viewMode === 'home'" @click="openMore('recommend')">更多 <el-icon><ArrowRight /></el-icon></el-button>
-           </div>
-           <el-skeleton :loading="recommendLoading || recommendPlaylists.length === 0" animated>
-             <template #template>
-               <div class="playlist-grid" :class="{ 'mobile-scroll': viewMode === 'home' }">
-                 <div v-for="i in (viewMode === 'home' ? 7 : 12)" :key="i" class="playlist-card">
-                   <div class="cover-wrapper">
-                     <el-skeleton-item variant="image" style="width: 100%; height: 100%;" />
-                   </div>
-                   <el-skeleton-item variant="text" style="width: 80%" />
-                 </div>
-               </div>
-             </template>
-             <template #default>
-               <div class="playlist-grid" :class="{ 'mobile-scroll': viewMode === 'home' }">
-                   <div v-for="list in (viewMode === 'home' ? recommendPlaylists.slice(0, 7) : recommendPlaylists)" :key="list.id" class="playlist-card" @click="openPlaylist(list)">
-                      <div class="cover-wrapper">
-                         <el-image :src="list.picUrl || list.coverImgUrl" class="playlist-cover" lazy />
-                         <div class="play-count"><el-icon><Headset /></el-icon> {{ formatCount(list.playCount) }}</div>
-                      </div>
-                      <div class="playlist-name">{{ list.name }}</div>
-                   </div>
-                </div>
-             </template>
-           </el-skeleton>
-        </div>
-
-        <!-- Rankings -->
-        <div class="section mb-4" v-if="viewMode === 'home' || viewMode === 'rank'">
-           <div class="section-header">
-              <h3 @click="viewMode === 'home' && openMore('rank')" :class="{ 'cursor-pointer': viewMode === 'home' }">排行榜</h3>
-              <el-button link v-if="viewMode === 'home'" @click="openMore('rank')">更多 <el-icon><ArrowRight /></el-icon></el-button>
-           </div>
-           
-           <!-- Home View: List Layout -->
-           <el-skeleton :loading="topList.length === 0" animated>
-             <template #template>
-               <div v-if="viewMode === 'home'" class="rank-grid">
-                 <div v-for="i in 4" :key="i" class="rank-card">
-                   <div class="rank-cover-wrapper">
-                     <el-skeleton-item variant="image" style="width: 100%; height: 100%; border-radius: 8px;" />
-                   </div>
-                   <div class="rank-songs">
-                     <div class="rank-song-row" style="white-space: normal; text-overflow: clip;">
-                       <el-skeleton-item variant="text" style="width: 80%" />
-                     </div>
-                     <div class="rank-song-row" style="white-space: normal; text-overflow: clip;">
-                       <el-skeleton-item variant="text" style="width: 80%" />
-                     </div>
-                     <div class="rank-song-row" style="white-space: normal; text-overflow: clip;">
-                       <el-skeleton-item variant="text" style="width: 80%" />
-                     </div>
-                   </div>
-                   <div class="playlist-name" v-if="isMobile">
-                     <el-skeleton-item variant="text" style="width: 60%" />
-                   </div>
-                 </div>
-               </div>
-               <div v-else class="playlist-grid">
-                 <div v-for="i in 8" :key="i" class="playlist-card">
-                   <div class="cover-wrapper">
-                     <el-skeleton-item variant="image" style="width: 100%; height: 100%;" />
-                   </div>
-                   <el-skeleton-item variant="text" style="width: 80%" />
-                 </div>
-               </div>
-             </template>
-             <template #default>
-               <div class="rank-grid" v-if="viewMode === 'home'">
-                 <div v-for="rank in topList.slice(0, 4)" :key="rank.id" class="rank-card" @click="openPlaylist(rank)">
-                   <div class="rank-cover-wrapper">
-                     <el-image :src="rank.coverImgUrl" class="rank-cover" lazy />
-                   </div>
-                   <div class="rank-songs">
-                     <div v-for="(song, idx) in rank.tracks.slice(0, 3)" :key="idx" class="rank-song-row">
-                       <span class="rank-num">{{ idx + 1 }}</span>
-                       <span class="rank-song-name">{{ song.first }}</span>
-                       <span class="rank-song-artist">- {{ song.second }}</span>
-                     </div>
-                   </div>
-                   <div class="playlist-name" v-if="isMobile">{{ rank.name }}</div>
-                 </div>
-               </div>
-               <div class="playlist-grid" v-else>
-                 <div v-for="rank in topList" :key="rank.id" class="playlist-card" @click="openPlaylist(rank)">
-                   <div class="cover-wrapper">
-                     <el-image :src="rank.coverImgUrl" class="playlist-cover" lazy />
-                     <div class="play-count"><el-icon><Headset /></el-icon> {{ formatCount(rank.playCount) }}</div>
-                   </div>
-                   <div class="playlist-name">{{ rank.name }}</div>
-                 </div>
-               </div>
-             </template>
-           </el-skeleton>
-
-        </div>
-
-        <!-- User Playlists (Mine) -->
-        <div class="section mb-4" v-if="viewMode === 'mine'">
-            <!-- No header needed as page title handles it, or add one if consistent -->
-            <el-skeleton :loading="userPlaylistLoading" animated>
-                <template #template>
-                    <div class="playlist-grid">
-                        <el-skeleton-item variant="image" style="width: 100%; height: 120px; border-radius: 8px;" v-for="i in 6" :key="i" />
+      <Transition :name="transitionName" mode="out-in">
+        <div v-if="viewMode === 'home'" key="home">
+            <!-- Personalized Recommendations V2 (Home Only) -->
+            <div class="section mb-4">
+                <div class="personalized-grid-v2">
+                    <!-- Left Column -->
+                    <div class="left-col">
+                    <!-- Daily Recommend -->
+                    <div class="personalized-card-v2 daily-card-v2" @click="handleDailyRecommend">
+                        <div class="card-icon-wrapper">
+                            <el-icon :size="40" class="daily-icon"><Calendar /></el-icon>
+                            <span class="daily-date">{{ currentDay }}</span>
+                        </div>
+                        <div class="card-text-v2">
+                            <div class="card-title-v2">每日推荐</div>
+                            <div class="card-desc-v2">根据你的音乐口味 · 每日更新</div>
+                        </div>
                     </div>
-                </template>
-                <template #default>
-                    <div class="playlist-grid">
-                        <div v-for="list in userPlaylists" :key="list.id" class="playlist-card" @click="openPlaylist(list)">
+                    
+                    <!-- Liked Music -->
+                    <div class="personalized-card-v2 like-card-v2" @click="handleLikedMusic">
+                        <div class="card-icon-wrapper like-icon-wrapper">
+                            <el-image v-if="likedPlaylistCover" :src="likedPlaylistCover" class="like-cover" fit="cover" />
+                            <template v-else>
+                                <div class="like-bg-stack"></div>
+                                <el-icon :size="24" class="like-icon"><Star /></el-icon>
+                            </template>
+                        </div>
+                        <div class="card-text-v2">
+                            <div class="card-title-v2">喜欢的音乐</div>
+                            <div class="card-desc-v2">发现你独特的音乐品味</div>
+                        </div>
+                    </div>
+                    </div>
+
+                    <!-- Right Column: Private FM -->
+                <div class="right-col fm-card-v2" @click="handleFmPlay">
+                    <div class="fm-bg-blur" :style="{ backgroundImage: `url(${(fmTrack && getCover(fmTrack)) || 'https://p2.music.126.net/6y-UleORITEDbvrOLV0Q8A==/5639395138885805.jpg'})` }"></div>
+                    <div class="fm-content">
+                    <div class="fm-cover-wrapper">
+                        <el-image :src="(fmTrack && getCover(fmTrack)) || 'https://p2.music.126.net/6y-UleORITEDbvrOLV0Q8A==/5639395138885805.jpg'" class="fm-cover" fit="cover">
+                        <template #placeholder><div class="fm-cover-placeholder"></div></template>
+                        </el-image>
+                        <div class="fm-tag">私人 FM</div>
+                    </div>
+                    <div class="fm-info-controls">
+                            <div class="fm-info">
+                                <div class="fm-title">{{ fmTrack?.name || '私人FM' }}</div>
+                                <div class="fm-artist">
+                                <el-icon><Headset /></el-icon> {{ fmTrack ? getArtistName(fmTrack) : '听见喜欢的音乐' }}
+                                </div>
+                                <div class="fm-album" v-if="fmTrack">
+                                <el-icon><Collection /></el-icon> {{ fmTrack?.al?.name || fmTrack?.album?.name || '未知专辑' }}
+                                </div>
+                            </div>
+                            
+                            <div class="fm-controls">
+                                <el-button circle size="large" class="fm-btn-play" @click.stop="handleFmPlay">
+                                <el-icon :size="24" v-if="playerStore.playMode === 'fm' && playerStore.isPlaying"><VideoPause /></el-icon>
+                                <el-icon :size="24" v-else><VideoPlay /></el-icon>
+                                </el-button>
+                                <el-button circle class="fm-btn-sub fm-btn-next" @click.stop="handleFmNext">
+                                <el-icon :size="20"><CaretRight /></el-icon>
+                                </el-button>
+                                <el-button circle class="fm-btn-sub fm-btn-trash" @click.stop="handleFmTrash">
+                                <el-icon :size="18"><Delete /></el-icon>
+                                </el-button>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+            </div>
+                
+            <!-- Radar Playlist (Home Preview) -->
+            <div class="section mb-4">
+                <div class="section-header">
+                    <h3 @click="openMore('radar')" class="cursor-pointer">雷达歌单</h3>
+                    <el-button link @click="openMore('radar')">更多 <el-icon><ArrowRight /></el-icon></el-button>
+                </div>
+                <el-skeleton :loading="radarLoading || radarPlaylists.length === 0" animated :count="1">
+                    <template #template>
+                    <div class="playlist-grid mobile-scroll">
+                        <div v-for="i in 7" :key="i" class="playlist-card">
+                        <div class="cover-wrapper">
+                            <el-skeleton-item variant="image" style="width: 100%; height: 100%;" />
+                        </div>
+                        <el-skeleton-item variant="text" style="width: 80%" />
+                        </div>
+                    </div>
+                    </template>
+                    <template #default>
+                    <div class="playlist-grid mobile-scroll">
+                        <div v-for="list in radarPlaylists.slice(0, 7)" :key="list.id" class="playlist-card" @click="openPlaylist(list)">
                             <div class="cover-wrapper">
                                 <el-image :src="list.coverImgUrl || list.picUrl" class="playlist-cover" lazy />
                                 <div class="play-count"><el-icon><Headset /></el-icon> {{ formatCount(list.playCount) }}</div>
                             </div>
                             <div class="playlist-name">{{ list.name }}</div>
                         </div>
+                        </div>
+                    </template>
+                </el-skeleton>
+            </div>
+
+            <!-- Recommended Playlist (Home Preview) -->
+            <div class="section mb-4">
+                <div class="section-header">
+                    <h3 @click="openMore('recommend')" class="cursor-pointer">推荐歌单</h3>
+                    <el-button link @click="openMore('recommend')">更多 <el-icon><ArrowRight /></el-icon></el-button>
+                </div>
+                <el-skeleton :loading="recommendLoading || recommendPlaylists.length === 0" animated>
+                    <template #template>
+                    <div class="playlist-grid mobile-scroll">
+                        <div v-for="i in 7" :key="i" class="playlist-card">
+                        <div class="cover-wrapper">
+                            <el-skeleton-item variant="image" style="width: 100%; height: 100%;" />
+                        </div>
+                        <el-skeleton-item variant="text" style="width: 80%" />
+                        </div>
                     </div>
-                    <div v-if="!userPlaylistLoading && userPlaylists.length === 0" class="text-center text-gray-500 py-10">
-                        暂无歌单
+                    </template>
+                    <template #default>
+                    <div class="playlist-grid mobile-scroll">
+                        <div v-for="list in recommendPlaylists.slice(0, 7)" :key="list.id" class="playlist-card" @click="openPlaylist(list)">
+                            <div class="cover-wrapper">
+                                <el-image :src="list.picUrl || list.coverImgUrl" class="playlist-cover" lazy />
+                                <div class="play-count"><el-icon><Headset /></el-icon> {{ formatCount(list.playCount) }}</div>
+                            </div>
+                            <div class="playlist-name">{{ list.name }}</div>
+                        </div>
+                        </div>
+                    </template>
+                </el-skeleton>
+            </div>
+
+            <!-- Rankings (Home Preview) -->
+            <div class="section mb-4">
+                <div class="section-header">
+                    <h3 @click="openMore('rank')" class="cursor-pointer">排行榜</h3>
+                    <el-button link @click="openMore('rank')">更多 <el-icon><ArrowRight /></el-icon></el-button>
+                </div>
+                
+                <!-- Home View: List Layout -->
+                <el-skeleton :loading="topList.length === 0" animated>
+                    <template #template>
+                    <div class="rank-grid">
+                        <div v-for="i in 4" :key="i" class="rank-card">
+                        <div class="rank-cover-wrapper">
+                            <el-skeleton-item variant="image" style="width: 100%; height: 100%; border-radius: 8px;" />
+                        </div>
+                        <div class="rank-songs">
+                            <div class="rank-song-row" style="white-space: normal; text-overflow: clip;">
+                            <el-skeleton-item variant="text" style="width: 80%" />
+                            </div>
+                            <div class="rank-song-row" style="white-space: normal; text-overflow: clip;">
+                            <el-skeleton-item variant="text" style="width: 80%" />
+                            </div>
+                            <div class="rank-song-row" style="white-space: normal; text-overflow: clip;">
+                            <el-skeleton-item variant="text" style="width: 80%" />
+                            </div>
+                        </div>
+                        <div class="playlist-name" v-if="isMobile">
+                            <el-skeleton-item variant="text" style="width: 60%" />
+                        </div>
+                        </div>
                     </div>
-                </template>
-            </el-skeleton>
-            
-            <div class="pagination-container mt-4" v-if="userPlaylistTotal > 0">
-               <el-pagination
-                 background
-                 layout="prev, pager, next"
-                 :pager-count="isMobile ? 5 : 7"
-                 :small="isMobile"
-                 :total="userPlaylistTotal"
-                 :page-size="10"
-                 v-model:current-page="userPlaylistPage"
-                 @current-change="handleUserPageChange"
-                 hide-on-single-page
-               />
+                    </template>
+                    <template #default>
+                    <div class="rank-grid">
+                        <div v-for="rank in topList.slice(0, 4)" :key="rank.id" class="rank-card" @click="openPlaylist(rank)">
+                        <div class="rank-cover-wrapper">
+                            <el-image :src="rank.coverImgUrl" class="rank-cover" lazy />
+                        </div>
+                        <div class="rank-songs">
+                            <div v-for="(song, idx) in rank.tracks.slice(0, 3)" :key="idx" class="rank-song-row">
+                            <span class="rank-num">{{ Number(idx) + 1 }}</span>
+                            <span class="rank-song-name">{{ song.first }}</span>
+                            <span class="rank-song-artist">- {{ song.second }}</span>
+                            </div>
+                        </div>
+                        <div class="playlist-name" v-if="isMobile">{{ rank.name }}</div>
+                        </div>
+                    </div>
+                    </template>
+                </el-skeleton>
             </div>
         </div>
+
+        <div v-else-if="viewMode === 'mine'" key="mine">
+            <!-- User Playlists (Mine) -->
+            <div class="section mb-4">
+                <!-- Playlist View -->
+                <template v-if="mineSubMode === 'playlist'">
+                <el-skeleton :loading="userPlaylistLoading" animated>
+                    <template #template>
+                        <div class="playlist-grid">
+                            <el-skeleton-item variant="image" style="width: 100%; height: 120px; border-radius: 8px;" v-for="i in 6" :key="i" />
+                        </div>
+                    </template>
+                    <template #default>
+                        <div class="playlist-grid">
+                            <div v-for="list in userPlaylists" :key="list.id" class="playlist-card" @click="openPlaylist(list)">
+                                <div class="cover-wrapper">
+                                    <el-image :src="list.coverImgUrl || list.picUrl" class="playlist-cover" lazy />
+                                    <div class="play-count"><el-icon><Headset /></el-icon> {{ formatCount(list.playCount) }}</div>
+                                    <div v-if="playerStore.userProfile?.userId === list.userId" class="delete-btn-wrapper" @click.stop="handleDeletePlaylist(list)">
+                                        <el-icon><Delete /></el-icon>
+                                    </div>
+                                </div>
+                                <div class="playlist-name">{{ list.name }}</div>
+                            </div>
+                        </div>
+                        <div v-if="!userPlaylistLoading && userPlaylists.length === 0" class="text-center text-gray-500 py-10">
+                            暂无歌单
+                        </div>
+                    </template>
+                </el-skeleton>
+                
+                <div class="pagination-container mt-4" v-if="userPlaylistTotal > 0">
+                <el-pagination
+                    background
+                    layout="prev, pager, next"
+                    :pager-count="isMobile ? 5 : 7"
+                    :small="isMobile"
+                    :total="userPlaylistTotal"
+                    :page-size="10"
+                    v-model:current-page="userPlaylistPage"
+                    @current-change="handleUserPageChange"
+                    hide-on-single-page
+                />
+                </div>
+                </template>
+
+                <!-- Podcast View -->
+            <template v-else-if="mineSubMode === 'podcast'">
+                <el-skeleton :loading="userPodcastLoading" animated>
+                    <template #template>
+                        <div class="playlist-grid">
+                            <el-skeleton-item variant="image" style="width: 100%; height: 120px; border-radius: 8px;" v-for="i in 6" :key="i" />
+                        </div>
+                    </template>
+                    <template #default>
+                        <div class="playlist-grid">
+                            <div v-for="item in userPodcasts" :key="item.id" class="playlist-card" @click="openPodcast(item)">
+                                <div class="cover-wrapper">
+                                    <el-image :src="item.picUrl" class="playlist-cover" lazy />
+                                    <div class="play-count"><el-icon><Headset /></el-icon> {{ formatCount(item.subCount || 0) }}</div>
+                                </div>
+                                <div class="playlist-name">{{ item.name }}</div>
+                            </div>
+                        </div>
+                        <div v-if="!userPodcastLoading && userPodcasts.length === 0" class="text-center text-gray-500 py-10">
+                            暂无收藏的播客
+                        </div>
+                    </template>
+                </el-skeleton>
+                
+                <div class="pagination-container mt-4" v-if="userPodcastTotal > 0">
+                    <el-pagination
+                    background
+                    layout="prev, pager, next"
+                    :pager-count="isMobile ? 5 : 7"
+                    :small="isMobile"
+                    :total="userPodcastTotal"
+                    :page-size="10"
+                    v-model:current-page="userPodcastPage"
+                    @current-change="handleUserPodcastPageChange"
+                    hide-on-single-page
+                    />
+                </div>
+            </template>
+            </div>
+        </div>
+
+        <div v-else-if="viewMode === 'radar'" key="radar">
+            <div class="section mb-4">
+                <div class="section-header">
+                    <h3>雷达歌单</h3>
+                </div>
+                <el-skeleton :loading="radarLoading || radarPlaylists.length === 0" animated :count="1">
+                    <template #template>
+                    <div class="playlist-grid">
+                        <div v-for="i in 12" :key="i" class="playlist-card">
+                        <div class="cover-wrapper">
+                            <el-skeleton-item variant="image" style="width: 100%; height: 100%;" />
+                        </div>
+                        <el-skeleton-item variant="text" style="width: 80%" />
+                        </div>
+                    </div>
+                    </template>
+                    <template #default>
+                    <div class="playlist-grid">
+                        <div v-for="list in radarPlaylists" :key="list.id" class="playlist-card" @click="openPlaylist(list)">
+                            <div class="cover-wrapper">
+                                <el-image :src="list.coverImgUrl || list.picUrl" class="playlist-cover" lazy />
+                                <div class="play-count"><el-icon><Headset /></el-icon> {{ formatCount(list.playCount) }}</div>
+                            </div>
+                            <div class="playlist-name">{{ list.name }}</div>
+                        </div>
+                        </div>
+                    </template>
+                </el-skeleton>
+            </div>
+        </div>
+
+        <div v-else-if="viewMode === 'recommend'" key="recommend">
+             <div class="section mb-4">
+                <div class="section-header">
+                    <h3>推荐歌单</h3>
+                </div>
+                <el-skeleton :loading="recommendLoading || recommendPlaylists.length === 0" animated>
+                    <template #template>
+                    <div class="playlist-grid">
+                        <div v-for="i in 12" :key="i" class="playlist-card">
+                        <div class="cover-wrapper">
+                            <el-skeleton-item variant="image" style="width: 100%; height: 100%;" />
+                        </div>
+                        <el-skeleton-item variant="text" style="width: 80%" />
+                        </div>
+                    </div>
+                    </template>
+                    <template #default>
+                    <div class="playlist-grid">
+                        <div v-for="list in recommendPlaylists" :key="list.id" class="playlist-card" @click="openPlaylist(list)">
+                            <div class="cover-wrapper">
+                                <el-image :src="list.picUrl || list.coverImgUrl" class="playlist-cover" lazy />
+                                <div class="play-count"><el-icon><Headset /></el-icon> {{ formatCount(list.playCount) }}</div>
+                            </div>
+                            <div class="playlist-name">{{ list.name }}</div>
+                        </div>
+                        </div>
+                    </template>
+                </el-skeleton>
+            </div>
+        </div>
+
+        <div v-else-if="viewMode === 'rank'" key="rank">
+            <div class="section mb-4">
+                <div class="section-header">
+                    <h3>排行榜</h3>
+                </div>
+                <el-skeleton :loading="topList.length === 0" animated>
+                    <template #template>
+                    <div class="playlist-grid">
+                        <div v-for="i in 8" :key="i" class="playlist-card">
+                        <div class="cover-wrapper">
+                            <el-skeleton-item variant="image" style="width: 100%; height: 100%;" />
+                        </div>
+                        <el-skeleton-item variant="text" style="width: 80%" />
+                        </div>
+                    </div>
+                    </template>
+                    <template #default>
+                    <div class="playlist-grid">
+                        <div v-for="rank in topList" :key="rank.id" class="playlist-card" @click="openPlaylist(rank)">
+                        <div class="cover-wrapper">
+                            <el-image :src="rank.coverImgUrl" class="playlist-cover" lazy />
+                            <div class="play-count"><el-icon><Headset /></el-icon> {{ formatCount(rank.playCount) }}</div>
+                        </div>
+                        <div class="playlist-name">{{ rank.name }}</div>
+                        </div>
+                    </div>
+                    </template>
+                </el-skeleton>
+            </div>
+        </div>
+      </Transition>
 
       </template>
 
@@ -466,7 +609,7 @@ import { usePlayerStore } from '../stores/player';
 import { useLayoutStore } from '../stores/layout';
 import { proxyRequest, getMusicApis } from '../services/api';
 import { musicCache } from '../utils/cache'; // Import CacheManager
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Loading, Headset, VideoPlay, Download, ArrowRight, Refresh, ArrowDown, Calendar, Star, CaretRight, Delete, VideoPause, Collection, RefreshRight } from '@element-plus/icons-vue';
 
 const router = useRouter();
@@ -485,6 +628,8 @@ const greeting = computed(() => {
 });
 
 const currentDay = ref(new Date().getDate());
+
+
 
 // FM Logic
 const fmTrack = computed(() => {
@@ -559,6 +704,12 @@ const userPlaylistLoading = ref(false);
 const userPlaylistPage = ref(1);
 const userPlaylistTotal = ref(0);
 
+// Podcast State
+const userPodcasts = ref<any[]>([]);
+const userPodcastLoading = ref(false);
+const userPodcastPage = ref(1);
+const userPodcastTotal = ref(0);
+
 // Playlist Dialog
 const showPlaylistDialog = ref(false);
 const currentPlaylist = ref<any>(null);
@@ -573,6 +724,40 @@ const pagedPlaylistTracks = computed(() => {
 
 // View Mode
 const viewMode = ref<'home' | 'radar' | 'recommend' | 'rank' | 'mine'>('home');
+const mineSubMode = ref<'playlist' | 'podcast'>('playlist');
+
+const transitionName = ref('slide-left');
+
+watch(viewMode, (newVal, oldVal) => {
+  const order = ['home', 'mine'];
+  const newIndex = order.indexOf(newVal);
+  const oldIndex = order.indexOf(oldVal);
+  
+  if (newIndex !== -1 && oldIndex !== -1) {
+    transitionName.value = newIndex > oldIndex ? 'slide-left' : 'slide-right';
+  } else {
+    // Default transition for other views
+    transitionName.value = 'fade';
+  }
+});
+
+const mainTab = computed({
+  get: () => viewMode.value === 'mine' ? 'mine' : 'home',
+  set: (val) => {
+    if (val === 'mine') {
+       openMore('mine');
+    } else {
+       viewMode.value = 'home';
+       pageTitle.value = '在线播放';
+       layoutStore.setPageInfo('在线播放', true, goBack);
+    }
+  }
+});
+
+const handleMainTabChange = () => {
+   // Logic handled by computed setter
+};
+
 const pageTitle = ref('在线播放');
 
 const goBack = () => {
@@ -628,7 +813,43 @@ const openMore = async (mode: 'radar' | 'recommend' | 'rank' | 'mine') => {
         // topList already has all data from init
     } else if (mode === 'mine') {
         // Fetch user playlists if empty
-        fetchUserPlaylists();
+        if (mineSubMode.value === 'playlist') {
+            if (userPlaylists.value.length === 0) fetchUserPlaylists();
+        } else if (mineSubMode.value === 'podcast') {
+            if (userPodcasts.value.length === 0) fetchUserPodcasts();
+        }
+    }
+};
+
+const fetchUserPodcasts = async () => {
+    if (!currentApi.value) return;
+    
+    userPodcastLoading.value = true;
+    try {
+        const baseUrl = currentApi.value.baseUrl;
+        const cookie = getCookie();
+        const headers = cookie ? { Cookie: cookie } : {};
+        const cookieEncoded = cookie ? encodeURIComponent(cookie) : '';
+        
+        const limit = 10;
+        const offset = (userPodcastPage.value - 1) * limit;
+
+        // DJ Sublist (Subscribed Podcasts)
+        const res = await proxyRequest(`${baseUrl}/dj/sublist?limit=${limit}&offset=${offset}&cookie=${cookieEncoded}`, 'GET', headers, {});
+        
+        // Debug
+        console.log('DJ Sublist Response:', res.data);
+
+        if (res.data?.djRadios) {
+            userPodcasts.value = res.data.djRadios;
+            userPodcastTotal.value = res.data.count || res.data.djRadios.length; 
+        }
+        
+    } catch (e) {
+        console.error(e);
+        ElMessage.error('获取播客失败');
+    } finally {
+        userPodcastLoading.value = false;
     }
 };
 
@@ -669,6 +890,99 @@ const handleUserPageChange = (page: number) => {
     fetchUserPlaylists();
 };
 
+const handleDeletePlaylist = async (playlist: any) => {
+    if (!currentApi.value) return;
+    
+    // Check if user is the owner
+    if (playerStore.userProfile?.userId !== playlist.userId) {
+        ElMessage.warning('只能删除自己创建的歌单');
+        return;
+    }
+
+    try {
+        await ElMessageBox.confirm(
+            `确定要删除歌单 "${playlist.name}" 吗？此操作无法撤销。`,
+            '删除确认',
+            {
+                confirmButtonText: '删除',
+                cancelButtonText: '取消',
+                type: 'warning',
+            }
+        );
+
+        const baseUrl = currentApi.value.baseUrl;
+        const cookie = getCookie();
+        const headers = cookie ? { Cookie: cookie } : {};
+        const cookieEncoded = cookie ? encodeURIComponent(cookie) : '';
+        
+        // Call delete API
+        const res = await proxyRequest(`${baseUrl}/playlist/delete?id=${playlist.id}&cookie=${cookieEncoded}`, 'POST', headers, {});
+        
+        if (res.data?.code === 200) {
+            ElMessage.success('删除成功');
+            fetchUserPlaylists(); // Refresh list
+        } else {
+             ElMessage.error(res.data?.msg || '删除失败');
+        }
+
+    } catch (e) {
+        if (e !== 'cancel') {
+             ElMessage.error('删除操作失败');
+             console.error(e);
+        }
+    }
+};
+
+const handleUserPodcastPageChange = (page: number) => {
+    userPodcastPage.value = page;
+    fetchUserPodcasts();
+};
+
+const openPodcast = (podcast: any) => {
+    // Re-use playlist dialog logic if structure is similar, or just log for now
+    // Podcasts usually have tracks/programs.
+    // Let's treat it as a playlist for now, might need adjustment for API endpoints.
+    // For now, let's use a simple alert or reuse openPlaylist if compatible.
+    // Actually, DJ radios have programs, not tracks in the same way.
+    // Let's try to fetch programs.
+    openDjRadio(podcast);
+};
+
+const openDjRadio = async (radio: any) => {
+    if (!currentApi.value) return;
+    currentPlaylist.value = { name: radio.name, coverImgUrl: radio.picUrl };
+    showPlaylistDialog.value = true;
+    playlistLoading.value = true;
+    playlistTracks.value = [];
+    playlistPage.value = 1;
+
+    try {
+        const baseUrl = currentApi.value.baseUrl;
+        const cookie = getCookie();
+        const headers = cookie ? { Cookie: cookie } : {};
+        const cookieEncoded = cookie ? encodeURIComponent(cookie) : '';
+        
+        // Fetch programs
+        const res = await proxyRequest(`${baseUrl}/dj/program?rid=${radio.id}&limit=50&cookie=${cookieEncoded}`, 'GET', headers, {});
+        
+        if (res.data?.programs) {
+            playlistTracks.value = res.data.programs.map((p: any) => ({
+                id: p.mainSong.id, // Use mainSong id for playback
+                name: p.name,
+                ar: p.dj ? [{ name: p.dj.nickname }] : [],
+                al: radio,
+                dt: p.duration,
+                picUrl: p.coverUrl
+            }));
+        }
+    } catch (e) {
+        ElMessage.error('获取播客内容失败');
+        console.error(e);
+    } finally {
+        playlistLoading.value = false;
+    }
+};
+
 // Watch for view mode request from App.vue
 watch(() => playerStore.viewModeRequest, (val) => {
     if (val === 'mine') {
@@ -679,9 +993,18 @@ watch(() => playerStore.viewModeRequest, (val) => {
             return;
         }
         openMore('mine');
-        playerStore.viewModeRequest = ''; // Reset immediate? No, keep logic simple
-        // Actually we can leave it or clear it. 
-        // If we clear it, next click works.
+        playerStore.viewModeRequest = ''; 
+    }
+});
+
+// Watch mineSubMode to fetch data
+watch(mineSubMode, (val) => {
+    if (viewMode.value === 'mine') {
+        if (val === 'playlist' && userPlaylists.value.length === 0) {
+            fetchUserPlaylists();
+        } else if (val === 'podcast' && userPodcasts.value.length === 0) {
+            fetchUserPodcasts();
+        }
     }
 });
 
@@ -1422,6 +1745,40 @@ onUnmounted(() => {
   align-items: center;
   gap: 2px;
 }
+
+.delete-btn-wrapper {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.delete-btn-wrapper:hover {
+  background: rgba(255, 0, 0, 0.8);
+  transform: scale(1.1);
+}
+
+.playlist-card:hover .delete-btn-wrapper {
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .delete-btn-wrapper {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.6);
+  }
+}
+
 .playlist-name {
   font-size: 14px;
   font-weight: 500;
@@ -1674,6 +2031,11 @@ onUnmounted(() => {
   opacity: 0.9;
 }
 /* New V2 Layout Styles */
+.flex-between-center {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 .greet-section {
   padding: 10px 0;
 }
@@ -2114,5 +2476,38 @@ onUnmounted(() => {
   .card-desc-v2 {
     display: none;
   }
+}
+
+/* Page Transitions */
+.slide-left-enter-active,
+.slide-left-leave-active,
+.slide-right-enter-active,
+.slide-right-leave-active,
+.fade-enter-active,
+.fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-left-enter-from {
+  opacity: 0;
+  transform: translateX(30px);
+}
+.slide-left-leave-to {
+  opacity: 0;
+  transform: translateX(-30px);
+}
+
+.slide-right-enter-from {
+  opacity: 0;
+  transform: translateX(-30px);
+}
+.slide-right-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

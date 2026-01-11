@@ -51,13 +51,14 @@
     <el-dialog
       v-model="dialogVisible"
       :title="isEdit ? '编辑' : '发布'"
-      width="600px"
+      :width="isMobile ? '90%' : '600px'"
+      :fullscreen="isMobile"
       :close-on-click-modal="false"
       destroy-on-close
     >
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
+      <el-form ref="formRef" :model="form" :rules="rules" :label-width="isMobile ? 'auto' : '100px'" :label-position="isMobile ? 'top' : 'right'">
         <el-form-item label="类型" prop="type">
-          <el-radio-group v-model="form.type">
+          <el-radio-group v-model="form.type" :size="isMobile ? 'small' : 'default'">
             <el-radio-button label="incident">故障报告</el-radio-button>
             <el-radio-button label="maintenance">计划维护</el-radio-button>
           </el-radio-group>
@@ -68,7 +69,7 @@
         </el-form-item>
         
         <el-form-item label="状态" prop="status">
-          <el-select v-model="form.status">
+          <el-select v-model="form.status" style="width: 100%">
             <el-option label="正在调查 (Investigating)" value="investigating" />
             <el-option label="已确认 (Identified)" value="identified" />
             <el-option label="正在观察 (Monitoring)" value="monitoring" />
@@ -78,11 +79,11 @@
         </el-form-item>
 
         <el-form-item label="开始时间" prop="start_time">
-          <el-date-picker v-model="form.start_time" type="datetime" placeholder="选择开始时间" value-format="X" />
+          <el-date-picker v-model="form.start_time" type="datetime" placeholder="选择开始时间" value-format="X" style="width: 100%" />
         </el-form-item>
 
         <el-form-item label="结束时间" prop="end_time" v-if="form.type === 'maintenance'">
-          <el-date-picker v-model="form.end_time" type="datetime" placeholder="预计结束时间" value-format="X" />
+          <el-date-picker v-model="form.end_time" type="datetime" placeholder="预计结束时间" value-format="X" style="width: 100%" />
         </el-form-item>
 
         <el-form-item label="详细说明" prop="content">
@@ -102,10 +103,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive } from 'vue';
+import { ref, onMounted, reactive, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { getIncidents, createIncident, updateIncident, deleteIncident, type Incident } from '../../services/admin';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { useWindowSize } from '@vueuse/core';
+
+const { width } = useWindowSize();
+const isMobile = computed(() => width.value < 768);
 
 const props = defineProps<{ embedded?: boolean }>();
 const embedded = props.embedded === true;

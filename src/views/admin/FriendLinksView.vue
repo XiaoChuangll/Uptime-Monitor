@@ -166,7 +166,13 @@ const goBack = () => router.push('/');
 
 <style scoped>
 .mb-4 { margin-bottom: 20px; }
-.toolbar { display: flex; gap: 10px; margin-bottom: 12px; }
+.toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
 .pagination { display: flex; justify-content: flex-end; margin-top: 12px; }
 .icon-preview { width: 24px; height: 24px; border-radius: 6px; object-fit: contain; }
 </style>

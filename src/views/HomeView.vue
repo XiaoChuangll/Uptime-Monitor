@@ -113,8 +113,14 @@
       </el-row>
     </div>
 
-    <div class="toolbar">
-      <h2>仪表盘</h2>
+    <div class="toolbar" ref="dashboardToolbarRef">
+      <div class="toolbar-left" @click="isDashboardCollapsed = !isDashboardCollapsed">
+        <h2>仪表盘</h2>
+        <el-icon class="collapse-icon">
+          <ArrowDown v-if="isDashboardCollapsed" />
+          <ArrowUp v-else />
+        </el-icon>
+      </div>
       <div class="toolbar-actions">
         <el-dropdown @command="onFilterCommand">
           <el-button plain :icon="Filter">
@@ -134,65 +140,69 @@
       </div>
     </div>
     
-    <el-row :gutter="20" class="stats-grid mb-4">
-      <el-col :xs="12" :sm="12" :md="6" :lg="6">
-        <div class="stat-card">
-          <div class="stat-head">
-            <div class="stat-label">监控网站</div>
-            <el-icon :size="20" class="stat-icon"><Monitor /></el-icon>
+    <el-collapse-transition>
+      <div v-show="!isDashboardCollapsed">
+        <el-row :gutter="20" class="stats-grid mb-4">
+        <el-col :xs="12" :sm="12" :md="6" :lg="6">
+          <div class="stat-card">
+            <div class="stat-head">
+              <div class="stat-label">监控网站</div>
+              <el-icon :size="20" class="stat-icon"><Monitor /></el-icon>
+            </div>
+            <div class="stat-value">{{ totalCount }}</div>
           </div>
-          <div class="stat-value">{{ totalCount }}</div>
-        </div>
-      </el-col>
-      <el-col :xs="12" :sm="12" :md="6" :lg="6">
-        <div class="stat-card">
-          <div class="stat-head">
-            <div class="stat-label">正常网站</div>
-            <el-icon :size="20" class="stat-icon icon-success"><CircleCheck /></el-icon>
+        </el-col>
+        <el-col :xs="12" :sm="12" :md="6" :lg="6">
+          <div class="stat-card">
+            <div class="stat-head">
+              <div class="stat-label">正常网站</div>
+              <el-icon :size="20" class="stat-icon icon-success"><CircleCheck /></el-icon>
+            </div>
+            <div class="stat-value text-success">{{ upCount }}</div>
           </div>
-          <div class="stat-value text-success">{{ upCount }}</div>
-        </div>
-      </el-col>
-      <el-col :xs="12" :sm="12" :md="6" :lg="6">
-        <div class="stat-card">
-          <div class="stat-head">
-            <div class="stat-label">异常网站</div>
-            <el-icon :size="20" class="stat-icon icon-warning"><WarningFilled /></el-icon>
+        </el-col>
+        <el-col :xs="12" :sm="12" :md="6" :lg="6">
+          <div class="stat-card">
+            <div class="stat-head">
+              <div class="stat-label">异常网站</div>
+              <el-icon :size="20" class="stat-icon icon-warning"><WarningFilled /></el-icon>
+            </div>
+            <div class="stat-value text-warning">{{ abnormalCount }}</div>
           </div>
-          <div class="stat-value text-warning">{{ abnormalCount }}</div>
-        </div>
-      </el-col>
-      <el-col :xs="12" :sm="12" :md="6" :lg="6">
-        <div class="stat-card">
-          <div class="stat-head">
-            <div class="stat-label">平均响应</div>
-            <el-icon :size="20" class="stat-icon icon-info"><Timer /></el-icon>
+        </el-col>
+        <el-col :xs="12" :sm="12" :md="6" :lg="6">
+          <div class="stat-card">
+            <div class="stat-head">
+              <div class="stat-label">平均响应</div>
+              <el-icon :size="20" class="stat-icon icon-info"><Timer /></el-icon>
+            </div>
+            <div class="stat-value">{{ avgResponseMs }}ms</div>
           </div>
-          <div class="stat-value">{{ avgResponseMs }}ms</div>
-        </div>
-      </el-col>
-    </el-row>
-    
-    <el-alert v-if="store.error" :title="store.error" type="error" show-icon class="mb-4" />
+        </el-col>
+      </el-row>
+      
+      <el-alert v-if="store.error" :title="store.error" type="error" show-icon class="mb-4" />
 
-    <el-skeleton :loading="store.loading && store.monitors.length === 0" animated :count="3">
-      <template #template>
-        <el-skeleton-item variant="rect" style="width: 100%; height: 150px; margin-bottom: 20px" />
-      </template>
-      <template #default>
-        <el-row :gutter="20">
-          <el-col :xs="24" :sm="12" :md="8" :lg="6" v-for="monitor in filteredMonitors" :key="monitor.id" class="mb-4">
-            <MonitorCard 
-              :monitor="monitor" 
-              :is-open="activeLogsId === monitor.id"
-              @toggle-logs="handleToggleLogs(monitor.id)"
-              @click="goToDetail(monitor.id)" 
-            />
-          </el-col>
-        </el-row>
-        <el-empty v-if="!store.loading && store.monitors.length === 0" description="暂无监控项目" />
-      </template>
-    </el-skeleton>
+      <el-skeleton :loading="store.loading && store.monitors.length === 0" animated :count="3">
+        <template #template>
+          <el-skeleton-item variant="rect" style="width: 100%; height: 150px; margin-bottom: 20px" />
+        </template>
+        <template #default>
+          <el-row :gutter="20">
+            <el-col :xs="24" :sm="12" :md="8" :lg="6" v-for="monitor in filteredMonitors" :key="monitor.id" class="mb-4">
+              <MonitorCard 
+                :monitor="monitor" 
+                :is-open="activeLogsId === monitor.id"
+                @toggle-logs="handleToggleLogs(monitor.id)"
+                @click="goToDetail(monitor.id)" 
+              />
+            </el-col>
+          </el-row>
+          <el-empty v-if="!store.loading && store.monitors.length === 0" description="暂无监控项目" />
+        </template>
+      </el-skeleton>
+    </div>
+  </el-collapse-transition>
 
   </div>
 </template>
@@ -203,13 +213,15 @@ import { useRouter } from 'vue-router';
 import { useMonitorStore } from '../stores/monitor';
 import MonitorCard from '../components/MonitorCard.vue';
 import ActiveIncidents from '../components/ActiveIncidents.vue';
-import { Refresh, Filter, CaretBottom, Monitor, User, More } from '@element-plus/icons-vue';
+import { Refresh, Filter, CaretBottom, Monitor, User, More, ArrowUp, ArrowDown } from '@element-plus/icons-vue';
 import { getPublicFriendLinks, getPublicGroupChats, getPublicAnnouncements, getPublicSiteCards, getPublicApps, type FriendLink, type SiteCard, type AppItem } from '../services/admin';
 import { connectWS, onWS } from '../services/ws';
 
 const store = useMonitorStore();
 const router = useRouter();
 const activeLogsId = ref<number | null>(null);
+const isDashboardCollapsed = ref(false);
+const dashboardToolbarRef = ref<HTMLElement | null>(null);
 
 const siteCards = ref<SiteCard[]>([]);
 const apps = ref<AppItem[]>([]);
@@ -378,6 +390,14 @@ const avgResponseMs = computed(() => {
   return Math.round(sum / values.length);
 });
 
+watch(isDashboardCollapsed, (newVal) => {
+  if (!newVal) {
+    setTimeout(() => {
+      dashboardToolbarRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  }
+});
+
 onMounted(async () => {
   document.addEventListener('click', handleGlobalClick);
   store.fetchMonitors();
@@ -456,7 +476,30 @@ const goMusic = () => {
   align-items: center;
   margin-top: 40px;
   margin-bottom: 20px;
+  scroll-margin-top: 70px;
 }
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toolbar-left h2 {
+  margin: 0;
+  margin-right: 8px;
+}
+
+.collapse-icon {
+  font-size: 18px;
+  color: var(--el-text-color-secondary);
+  transition: transform 0.3s;
+}
+
+.toolbar-left:hover .collapse-icon {
+  color: var(--el-color-primary);
+}
+
 .toolbar-actions {
   display: flex;
   align-items: center;

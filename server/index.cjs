@@ -1407,12 +1407,27 @@ app.put('/api/admin/music/apis/:id', requireAuth, (req, res) => {
   const id = Number(req.params.id);
   const { name, url, type, enabled } = req.body;
   
+  const sets = [];
+  const params = [];
+
+  if (typeof name !== 'undefined') { sets.push('name=?'); params.push(name); }
+  if (typeof url !== 'undefined') { sets.push('url=?'); params.push(url); }
+  if (typeof type !== 'undefined') { sets.push('type=?'); params.push(type); }
+  if (typeof enabled !== 'undefined') { sets.push('enabled=?'); params.push(enabled); }
+
+  if (sets.length === 0) {
+    return res.json({ changed: 0 });
+  }
+
+  sets.push('updated_at=CURRENT_TIMESTAMP');
+  params.push(id);
+  
   db.run(
-    `UPDATE music_apis SET name=?, url=?, type=?, enabled=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`,
-    [name, url, type, enabled, id],
+    `UPDATE music_apis SET ${sets.join(', ')} WHERE id=?`,
+    params,
     function(err) {
       if (err) return res.status(500).json({ error: err.message });
-      logAction(req.user?.username, 'update', 'music_apis', id, { name, url });
+      logAction(req.user?.username, 'update', 'music_apis', id, { name, url, enabled });
       res.json({ changed: this.changes });
     }
   );

@@ -1,13 +1,12 @@
 <template>
   <div class="music-apis-admin">
     <div class="toolbar">
-      <el-button type="warning" :icon="Plus" @click="importMonitors">导入接口</el-button>
+      <el-button type="primary" :icon="Plus" @click="importMonitors">导入接口</el-button>
       <el-button type="primary" @click="checkAll" :loading="checking">一键检测</el-button>
       <el-button type="success" @click="openDialog()">添加接口</el-button>
     </div>
 
     <el-table :data="apis" style="width: 100%" stripe v-loading="loading">
-      <el-table-column prop="id" label="ID" width="60" />
       <el-table-column prop="name" label="名称" :width="isMobile ? '' : 150" :min-width="isMobile ? 120 : ''" />
       <el-table-column v-if="!isMobile" prop="url" label="API URL" min-width="250">
         <template #default="{ row }">
@@ -288,7 +287,13 @@ const importMonitors = async () => {
 </script>
 
 <style scoped>
-.toolbar { display: flex; gap: 10px; margin-bottom: 12px; }
+.toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
 .link {
   color: var(--el-color-primary);
   text-decoration: none;
