@@ -1,11 +1,11 @@
 # Vue Uptime Monitor System
 
-[![License](https://img.shields.io/github/license/XiaoChuangll/Uptime-Monitor?style=flat-square)](LICENSE)
-[![Vue](https://img.shields.io/badge/Vue-3.x-4FC08D?style=flat-square&logo=vue.js)](https://vuejs.org/)
-[![GitHub stars](https://img.shields.io/github/stars/XiaoChuangll/Uptime-Monitor?style=flat-square)](https://github.com/XiaoChuangll/Uptime-Monitor/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/XiaoChuangll/Uptime-Monitor?style=flat-square)](https://github.com/XiaoChuangll/Uptime-Monitor/network/members)
-[![GitHub issues](https://img.shields.io/github/issues/XiaoChuangll/Uptime-Monitor?style=flat-square)](https://github.com/XiaoChuangll/Uptime-Monitor/issues)
-[![GitHub last commit](https://img.shields.io/github/last-commit/XiaoChuangll/Uptime-Monitor?style=flat-square)](https://github.com/XiaoChuangll/Uptime-Monitor/commits/main)
+[![License](https://img.shields.io/github/license/XiaoChuangll/Uptime-Monitor?style=plastic)](LICENSE)
+[![Vue](https://img.shields.io/badge/Vue-3.x-4FC08D?style=plastic&logo=vue.js)](https://vuejs.org/)
+[![GitHub stars](https://img.shields.io/github/stars/XiaoChuangll/Uptime-Monitor?style=plastic)](https://github.com/XiaoChuangll/Uptime-Monitor/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/XiaoChuangll/Uptime-Monitor?style=plastic)](https://github.com/XiaoChuangll/Uptime-Monitor/network/members)
+[![GitHub issues](https://img.shields.io/github/issues/XiaoChuangll/Uptime-Monitor?style=plastic)](https://github.com/XiaoChuangll/Uptime-Monitor/issues)
+[![GitHub last commit](https://img.shields.io/github/last-commit/XiaoChuangll/Uptime-Monitor?style=plastic)](https://github.com/XiaoChuangll/Uptime-Monitor/commits/main)
 
 本系统是一个集成了**服务监控**、**音乐点播**、**信息发布**与**数据统计**的一站式服务平台。基于 Vue 3 + Express + SQLite 开发。
 
