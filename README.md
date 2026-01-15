@@ -1,4 +1,4 @@
-# Vue Uptime Monitor System
+# Uptime Monitor System
 
 <p align="center">
   <img 
