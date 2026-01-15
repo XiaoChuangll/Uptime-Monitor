@@ -1,5 +1,9 @@
 # Vue Uptime Monitor System
 
+<p align="center">
+  <img src="public/favicon.svg" alt="Uptime Monitor Icon" width="120" height="120">
+</p>
+
 [![License](https://img.shields.io/github/license/XiaoChuangll/Uptime-Monitor?style=plastic)](LICENSE)
 [![Vue](https://img.shields.io/badge/Vue-3.x-4FC08D?style=plastic&logo=vue.js)](https://vuejs.org/)
 [![GitHub stars](https://img.shields.io/github/stars/XiaoChuangll/Uptime-Monitor?style=plastic)](https://github.com/XiaoChuangll/Uptime-Monitor/stargazers)
