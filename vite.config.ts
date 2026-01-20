@@ -13,6 +13,7 @@ export default defineConfig(({ mode }) => {
       'process.env': env
     },
     server: {
+      port: 3011,
       proxy: {
         '/api': {
           target: `http://localhost:${env.PORT || 3001}`,
