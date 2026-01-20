@@ -20,6 +20,13 @@ const router = useRouter();
 const route = useRoute();
 const goLogin = () => router.push({ name: 'login' });
 const logout = () => auth.logout();
+const handleMainUserCommand = (cmd: string) => {
+  if (cmd === 'admin') {
+    router.push({ name: 'admin' });
+  } else if (cmd === 'logout') {
+    logout();
+  }
+};
 
 const visitorCount = ref<number>(0);
 const showVisitorDialog = ref(false);
@@ -112,7 +119,18 @@ onUnmounted(() => {
       </transition>
       
       <div class="actions">
-        <el-button v-if="auth.isLoggedIn() && route.path === '/'" :icon="Setting" circle @click="router.push({ name: 'admin' })" class="mr-2" />
+        <template v-if="route.name !== 'music' && route.name !== 'login' && !String(route.path).startsWith('/admin')">
+          <el-dropdown v-if="auth.isLoggedIn()" trigger="click" @command="handleMainUserCommand" class="mr-2">
+            <el-button circle :icon="Setting" />
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="admin">进入后台</el-dropdown-item>
+                <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+          <el-button v-else :icon="User" circle @click="goLogin" class="mr-2" />
+        </template>
         
         <!-- Changelog Button (Hidden on Music Page) -->
         <el-button v-if="route.name !== 'music'" :icon="Notebook" circle @click="openChangelog" class="mr-2" />
@@ -145,8 +163,7 @@ onUnmounted(() => {
         <div class="spacer"></div>
         <el-button v-if="route.name !== 'about'" link @click="router.push({ name: 'about' })" class="mr-2">关于</el-button>
         <template v-if="route.name !== 'music'">
-          <el-button v-if="!auth.isLoggedIn()" type="primary" @click="goLogin">登录</el-button>
-          <el-button v-else type="danger" @click="logout">退出登录</el-button>
+          <!-- logout button removed, moved to header dropdown -->
         </template>
       </div>
       <VisitorStatsDialog v-model="showVisitorDialog" />

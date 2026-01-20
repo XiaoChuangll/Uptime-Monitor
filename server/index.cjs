@@ -316,11 +316,11 @@ app.get('/api/visitors', (req, res) => {
           res.json({
             visitors: rows,
             total: agg?.total ?? rows.length,
-            unique_ip: agg?.unique_ip ?? 0,
-            location_kinds: agg?.location_kinds ?? 0,
-            device_kinds: agg?.device_kinds ?? 0,
-            location_stats: locRows || [],
-            device_stats: devRows || [],
+            uniqueIp: agg?.unique_ip ?? 0,
+            locationKinds: agg?.location_kinds ?? 0,
+            deviceKinds: agg?.device_kinds ?? 0,
+            locationStats: locRows || [],
+            deviceStats: devRows || [],
           });
         });
       });
