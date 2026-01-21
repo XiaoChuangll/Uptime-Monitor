@@ -120,8 +120,10 @@ onUnmounted(() => {
       
       <div class="actions">
         <template v-if="route.name !== 'music' && route.name !== 'login' && !String(route.path).startsWith('/admin')">
-          <el-dropdown v-if="auth.isLoggedIn()" trigger="click" @command="handleMainUserCommand" class="mr-2">
-            <el-button circle :icon="Setting" />
+          <el-dropdown v-if="auth.isLoggedIn()" trigger="click" @command="handleMainUserCommand" class="mr-2 custom-dropdown">
+            <div class="el-dropdown-link">
+              <el-button circle :icon="Setting" />
+            </div>
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item command="admin">进入后台</el-dropdown-item>
@@ -264,6 +266,19 @@ onUnmounted(() => {
 .visitor-pill:hover {
   background-color: var(--el-fill-color);
   border-color: var(--el-color-primary);
+}
+.actions {
+  display: flex;
+  align-items: center;
+}
+.custom-dropdown {
+  display: flex;
+  align-items: center;
+}
+.el-dropdown-link {
+  display: flex;
+  align-items: center;
+  outline: none;
 }
 .spacer { flex: 1; }
 </style>
