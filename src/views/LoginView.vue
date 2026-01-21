@@ -6,6 +6,7 @@
         <el-form-item label="用户名"><el-input v-model="form.username" /></el-form-item>
         <el-form-item label="密码"><el-input v-model="form.password" type="password" /></el-form-item>
         <el-form-item>
+          <el-button @click="goBack">返回</el-button>
           <el-button type="primary" :loading="loading" @click="login">登录</el-button>
         </el-form-item>
         <el-alert v-if="error" :title="error" type="error" show-icon class="mt-2" />
@@ -26,13 +27,17 @@ const form = ref({ username: '', password: '' });
 const loading = ref(false);
 const error = ref('');
 
+const goBack = () => {
+  router.back();
+};
+
 const login = async () => {
   error.value = '';
   loading.value = true;
   try {
     const { data } = await axios.post('/api/auth/login', form.value);
     store.setToken(data.token);
-    router.push({ name: 'home' });
+    router.push({ name: 'admin' });
   } catch (e: any) {
     error.value = e?.response?.data?.error || '登录失败';
   } finally {
