@@ -137,9 +137,7 @@ watch(
         </span>
         <div class="spacer"></div>
         <el-button v-if="route.name !== 'about'" link @click="router.push({ name: 'about' })" class="mr-2">关于</el-button>
-        <template v-if="route.name !== 'music' && route.name !== 'login'">
-          <el-button v-if="!auth.isLoggedIn()" type="primary" @click="goLogin">登录</el-button>
-        </template>
+
       </div>
       <VisitorStatsDialog v-model="showVisitorDialog" />
       <ChangelogDialog v-model="showChangelog" />

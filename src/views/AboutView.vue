@@ -1,5 +1,5 @@
 <template>
-  <div class="about-view">
+  <div class="about-view" :style="{ paddingBottom: `${playerBottomPadding}px` }">
     <el-page-header @back="goBack" class="mb-4">
       <template #content>
         <span class="text-large font-600 mr-3"> 关于本站 </span>
@@ -115,8 +115,9 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
-import { onMounted, onUnmounted, ref, computed } from 'vue';
+import { onMounted, onUnmounted, ref, computed, watch } from 'vue';
 import { useLayoutStore } from '../stores/layout';
+import { usePlayerStore } from '../stores/player';
 import { Link, ArrowRight, StarFilled } from '@element-plus/icons-vue';
 import { getAboutPage, type AboutPage } from '../services/api';
 import axios from 'axios';
@@ -125,11 +126,37 @@ import 'github-markdown-css/github-markdown.css';
 
 const router = useRouter();
 const layoutStore = useLayoutStore();
+const playerStore = usePlayerStore();
 const aboutData = ref<AboutPage>({ id: 0, version: '', author_name: '', author_avatar: '', author_github: '', github_repo: '', content_html: '', content_markdown: '' });
 const commits = ref<any[]>([]);
 const commitsLoading = ref(false);
 const commitsExpanded = ref(false);
 const repoStars = ref<number | null>(null);
+
+const playerBottomPadding = ref(0);
+
+const updatePlayerBottomPadding = () => {
+  if (playerStore.showPlayer && playerStore.currentTrack) {
+    // Estimate player height (e.g., 80px) + some margin
+    const playerHeight = 80; 
+    const margin = 20; // Additional margin
+    playerBottomPadding.value = playerHeight + margin;
+  } else {
+    playerBottomPadding.value = 0;
+  }
+};
+
+onMounted(() => {
+  updatePlayerBottomPadding();
+  window.addEventListener('resize', updatePlayerBottomPadding);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updatePlayerBottomPadding);
+});
+
+watch(() => playerStore.showPlayer, updatePlayerBottomPadding);
+watch(() => playerStore.currentTrack, updatePlayerBottomPadding);
 
 const techStack = [
   { name: 'Vue 3', type: 'success' },

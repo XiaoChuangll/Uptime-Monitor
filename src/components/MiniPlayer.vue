@@ -223,14 +223,13 @@ onUnmounted(() => {
 const playerStyle = computed(() => {
   // Mobile default bottom: 30px (close to bottom edge)
   // Desktop default bottom: 30px
-  const baseBottom = isMobile.value ? 30 : 30;
+  const baseBottom = isMobile.value ? 12 : 20; // Adjusted base bottom for better spacing
   let bottomVal = baseBottom;
   
   // If footer overlaps, we lift it up
   if (footerOverlap.value > 0) {
-    if (footerOverlap.value > baseBottom) {
-        bottomVal = footerOverlap.value;
-    }
+    // Ensure player is always above the visible part of the footer
+    bottomVal = footerOverlap.value + baseBottom;
   }
   
   // Safety cap: ensure player doesn't go off-screen (top)
