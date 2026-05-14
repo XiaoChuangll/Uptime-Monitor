@@ -155,11 +155,6 @@ const togglePlaylist = () => {
   }
 }; */
 
-watch(() => store.showPlayer && store.currentTrack, async () => {
-  // Reset minimized state when track changes or player shows up
-  nextTick(checkFooterOverlap);
-}, { immediate: true });
-
 const checkMobile = () => {
   isMobile.value = window.innerWidth <= 768;
 };
@@ -202,6 +197,11 @@ const checkFooterOverlap = () => {
     footerOverlap.value = 0;
   }
 };
+
+watch(() => store.showPlayer && store.currentTrack, async () => {
+  // Reset minimized state when track changes or player shows up
+  nextTick(checkFooterOverlap);
+}, { immediate: true });
 
 onMounted(() => {
   window.addEventListener('scroll', checkFooterOverlap);

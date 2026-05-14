@@ -3,7 +3,7 @@ import { useThemeStore } from './stores/theme';
 import { useAuthStore } from './stores/auth';
 import { useLayoutStore } from './stores/layout';
 import { useRouter, useRoute } from 'vue-router';
-import { Moon, Sunny, ArrowLeft, Notebook, Setting } from '@element-plus/icons-vue';
+import { Moon, Sunny, ArrowLeft, Notebook, Setting, Back } from '@element-plus/icons-vue';
 import { computed, ref, onMounted, onUnmounted, watch } from 'vue';
 import { getVisitorStats } from './services/api';
 import { trackVisit } from './services/api';
@@ -42,6 +42,7 @@ const openChangelog = () => {
 };
 
 const isAdminRoute = computed(() => route.path.startsWith('/admin'));
+const showAdminLogoutButton = computed(() => isAdminRoute.value && auth.isLoggedIn());
 
 const goAdminEntry = () => {
   if (auth.isLoggedIn()) {
@@ -52,11 +53,10 @@ const goAdminEntry = () => {
   }
 };
 
-const handleAdminCommand = (command: string) => {
-  if (command !== 'logout') return;
+const handleAdminLogout = async () => {
   auth.logout();
   ElMessage.success('已退出登录');
-  router.push({ name: 'home' });
+  await router.push({ name: 'login' });
 };
 
 onMounted(() => {
@@ -104,15 +104,22 @@ watch(
       </transition>
       
       <div class="actions">
-        <el-dropdown v-if="isAdminRoute && auth.isLoggedIn()" trigger="click" @command="handleAdminCommand">
-          <el-button :icon="Setting" circle class="mr-2" />
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="logout">退出登录</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-        <el-button v-else :icon="Setting" circle @click="goAdminEntry" class="mr-2" />
+        <el-button
+          v-if="showAdminLogoutButton"
+          :icon="Back"
+          circle
+          class="mr-2"
+          aria-label="退出登录"
+          @click="handleAdminLogout"
+        />
+        <el-button
+          v-else
+          :icon="Setting"
+          circle
+          class="mr-2"
+          aria-label="后台入口"
+          @click="goAdminEntry"
+        />
         
         <!-- Changelog Button (Hidden on Music Page) -->
         <el-button v-if="route.name !== 'music'" :icon="Notebook" circle @click="openChangelog" class="mr-2" />
