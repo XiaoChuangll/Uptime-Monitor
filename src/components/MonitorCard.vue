@@ -10,7 +10,6 @@
       </div>
       <div class="header-right">
         <div class="status-text" :class="statusTextClass">{{ statusText }}</div>
-        <div v-if="lastResponseTime" class="ping-text">{{ lastResponseTime }}ms</div>
       </div>
     </div>
     <div class="card-footer">
@@ -18,8 +17,11 @@
         可用率: {{ dayUptime }}%
       </el-tag>
       <el-tag type="success" effect="light" size="small" class="custom-tag">
-        运行时长: {{ runningTime }}
+        运行期: {{ runningTime }}
       </el-tag>
+      <div v-if="lastResponseTime" class="el-tag el-tag--info el-tag--small el-tag--light custom-tag ping-text">
+        <span class="el-tag__content">{{ lastResponseTime }}ms</span>
+      </div>
     </div>
     
     <div class="uptime-history">
@@ -36,7 +38,6 @@
       </div>
       <div class="history-summary">
         <span class="text-xs text-secondary">30天前</span>
-        <span class="text-xs text-center flex-1">{{ historySummaryText }}</span>
         <span class="text-xs text-secondary">今日</span>
       </div>
     </div>
@@ -57,6 +58,10 @@
       <div class="logs-header" @click.stop="toggleLogs">
         <span>故障记录</span>
         <el-icon :class="{ 'is-active': isOpen }"><ArrowUp /></el-icon>
+      </div>
+      <div class="logs-summary">
+        <span>最近30天 {{ failureCountText }}</span>
+        <span>累计{{ downtimeText }}</span>
       </div>
     </div>
   </div>
@@ -137,27 +142,29 @@ const getBarTooltip = (rangeVal: string | null, index: number) => {
   return `${dateStr}: ${rangeVal}%`;
 };
 
-const historySummaryText = computed(() => {
+const downtimeText = computed(() => {
   // Use custom_uptime_ratio (1-7-30) -> 3rd value for 30 days
   const ratios = props.monitor.custom_uptime_ratio ? props.monitor.custom_uptime_ratio.split('-') : [];
   const ratio30 = ratios.length >= 3 ? parseFloat(ratios[2]) : 100;
-  
+
   // Calculate total downtime
   // 30 days in minutes = 30 * 24 * 60 = 43200 minutes
   const totalMinutes = 43200;
   const downMinutes = Math.round(totalMinutes * (1 - ratio30 / 100));
-  
-  let durationText = '';
+
   if (downMinutes <= 0) {
-    durationText = '0分钟';
-  } else if (downMinutes < 60) {
-    durationText = `${downMinutes}分钟`;
-  } else {
-    const h = Math.floor(downMinutes / 60);
-    const m = downMinutes % 60;
-    durationText = `${h}小时${m}分钟`;
+    return '0分钟';
+  }
+  if (downMinutes < 60) {
+    return `${downMinutes}分钟`;
   }
 
+  const h = Math.floor(downMinutes / 60);
+  const m = downMinutes % 60;
+  return `${h}小时${m}分钟`;
+});
+
+const failureCountText = computed(() => {
   // Count failures from logs (approximate)
   // Filter logs for type=1 (Down) in last 30 days
   const now = Date.now() / 1000;
@@ -166,7 +173,7 @@ const historySummaryText = computed(() => {
     ? props.monitor.logs.filter(l => l.type === 1 && l.datetime >= thirtyDaysAgo).length
     : 0;
 
-  return `最近30天 ${failures} 次故障，累计${durationText}`;
+  return `${failures} 次故障`;
 });
 
 const accentClass = computed(() => {
@@ -209,13 +216,13 @@ const runningTime = computed(() => {
 
 const dayUptime = computed(() => {
   if (props.monitor.custom_uptime_ratio) {
-    return props.monitor.custom_uptime_ratio.split('-')[0];
+    return Math.floor(parseFloat(props.monitor.custom_uptime_ratio.split('-')[0]));
   }
-  return props.monitor.uptime_ratio || '0.00';
+  return Math.floor(parseFloat(props.monitor.uptime_ratio || '0'));
 });
 
 const uptimeStatusType = computed(() => {
-  const ratio = parseFloat(dayUptime.value);
+  const ratio = dayUptime.value;
   if (ratio >= 99) return 'success';
   if (ratio >= 95) return 'warning';
   return 'danger';
@@ -255,19 +262,19 @@ const lastResponseTime = computed(() => {
 .link-icon { color: var(--el-text-color-secondary); }
 .title-link:hover .link-icon { color: var(--el-color-primary); }
 .status-text { font-size: 0.85rem; font-weight: 600; }
-.ping-text { font-size: 0.75rem; font-family: monospace; font-weight: 600; color: var(--el-text-color-secondary); }
 .text-success { color: var(--el-color-success); }
 .text-warning { color: var(--el-color-warning); }
 .text-danger { color: var(--el-color-danger); }
 .text-info { color: var(--el-color-info); }
-.card-footer { border-top: 1px solid var(--el-border-color-lighter); padding-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
-.custom-tag { font-weight: 500; }
+.card-footer { border-top: 1px solid var(--el-border-color-lighter); padding-top: 12px; display: flex; gap: 8px; flex-wrap: nowrap; }
+.custom-tag { font-weight: 500; flex: 1; min-width: 0; justify-content: center; }
+.ping-text { min-width: 0; white-space: nowrap; }
+.ping-text .el-tag__content { width: 100%; text-align: center; }
 .history-bar {
-  width: calc(100% / 15 - 6px); /* Smaller size */
+  width: 100%;
   aspect-ratio: 1;
   border-radius: 5px;
   background-color: var(--el-fill-color);
-  margin: 1px;
 }
 .bg-success { background-color: var(--el-color-success) !important; }
 .bg-warning { background-color: var(--el-color-warning) !important; }
@@ -281,12 +288,11 @@ const lastResponseTime = computed(() => {
   margin-top: 8px;
 }
 .history-bars {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px; /* Slightly larger gap */
+  display: grid;
+  grid-template-columns: repeat(15, minmax(0, 1fr));
+  gap: 3px;
   margin-bottom: 6px;
-  height: auto;
-  justify-content: space-between;
+  align-items: stretch;
 }
 
 .history-summary {
@@ -325,6 +331,15 @@ const lastResponseTime = computed(() => {
 }
 .logs-header .el-icon.is-active {
   transform: rotate(180deg);
+}
+.logs-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  padding: 0 4px 4px;
+  gap: 12px;
 }
 .logs-content {
   position: absolute;

@@ -51,7 +51,6 @@ const getOption = () => {
 
 const initChart = () => {
   if (!chartRef.value) return;
-  
   chartInstance = echarts.init(chartRef.value);
   chartInstance.setOption(getOption());
 };

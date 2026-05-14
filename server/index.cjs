@@ -78,51 +78,72 @@ function decrypt(data) {
   }
 }
 
-// Middleware to track visitors
-app.use((req, res, next) => {
-  // Only track main page or specific API calls to avoid double counting assets
-  if (req.path === '/api/monitors' && req.method === 'GET') {
-    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
-    // Normalize IPv6 localhost
-    const cleanIp = ip === '::1' ? '127.0.0.1' : ip.split(',')[0].trim();
-    
-    const geo = geoip.lookup(cleanIp);
-    const location = geo ? [geo.city, geo.country].filter(Boolean).join(' ') : 'Unknown Local';
-    
-    const parser = new UAParser(req.headers['user-agent']);
-    const browser = parser.getBrowser();
-    const os = parser.getOS();
-    const dev = parser.getDevice();
-    
-    let deviceStr = '';
-    
-    // Browser
-    const browserStr = [browser.name, browser.version].filter(Boolean).join(' ');
-    
-    // Vendor + Model
-    if (dev.vendor || dev.model) {
-      deviceStr = [dev.vendor, dev.model].filter(Boolean).join(' ');
-    }
-    
-    // OS + Version
-    const osStr = [os.name, os.version].filter(Boolean).join(' ');
-    
-    const parts = [];
-    if (deviceStr) parts.push(deviceStr);
-    if (osStr) parts.push(osStr);
-    if (browserStr) parts.push(browserStr);
-    
-    const device = parts.length > 0 ? parts.join(' - ') : 'Unknown Device';
+function normalizeIp(req) {
+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+  return ip === '::1' ? '127.0.0.1' : String(ip).split(',')[0].trim();
+}
 
-    db.run(
-      `INSERT INTO visitors (ip, location, device) VALUES (?, ?, ?)`,
-      [cleanIp, location, device],
-      (err) => {
-        if (err) console.error('Error tracking visitor:', err);
+function getVisitorMeta(req) {
+  const cleanIp = normalizeIp(req);
+  const geo = geoip.lookup(cleanIp);
+  const location = geo ? [geo.city, geo.country].filter(Boolean).join(' ') : 'Unknown Local';
+
+  const parser = new UAParser(req.headers['user-agent']);
+  const browser = parser.getBrowser();
+  const os = parser.getOS();
+  const dev = parser.getDevice();
+
+  const browserStr = [browser.name, browser.version].filter(Boolean).join(' ');
+  const deviceStr = [dev.vendor, dev.model].filter(Boolean).join(' ');
+  const osStr = [os.name, os.version].filter(Boolean).join(' ');
+  const parts = [deviceStr, osStr, browserStr].filter(Boolean);
+
+  return {
+    cleanIp,
+    location,
+    device: parts.length > 0 ? parts.join(' - ') : 'Unknown Device'
+  };
+}
+
+function normalizeTrackedPath(rawPath) {
+  if (!rawPath || typeof rawPath !== 'string') return '/';
+  return rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
+}
+
+function recordVisitor(req, trackedPath, callback) {
+  const { cleanIp, location, device } = getVisitorMeta(req);
+  const pathValue = normalizeTrackedPath(trackedPath);
+
+  db.run(
+    `INSERT INTO visitors (ip, location, device, path) VALUES (?, ?, ?, ?)`,
+    [cleanIp, location, device, pathValue],
+    function(err) {
+      if (err) {
+        console.error('Error tracking visitor:', err);
+        if (typeof callback === 'function') callback(err);
+        return;
       }
-    );
-  }
-  next();
+
+      const payload = {
+        id: this.lastID,
+        ip: cleanIp,
+        location,
+        device,
+        path: pathValue,
+        timestamp: new Date().toISOString()
+      };
+      broadcast('visitors:new', payload);
+      if (typeof callback === 'function') callback(null, payload);
+    }
+  );
+}
+
+app.get('/api/public/track', (req, res) => {
+  const trackedPath = typeof req.query.path === 'string' ? req.query.path : '/';
+  recordVisitor(req, trackedPath, (err) => {
+    if (err) return res.status(500).json({ error: 'Failed to track visitor' });
+    res.json({ ok: true });
+  });
 });
 
 // API Proxy for debugging
@@ -256,7 +277,7 @@ app.get('/api/monitors', async (req, res) => {
 app.get('/api/visitors', (req, res) => {
   const limit = Number(req.query.limit || 50);
   const page = req.query.page ? Number(req.query.page) : null;
-  const { location, device } = req.query;
+  const { location, device, path: visitorPath } = req.query;
 
   let whereClauses = [];
   let whereParams = [];
@@ -268,6 +289,10 @@ app.get('/api/visitors', (req, res) => {
   if (device) {
     whereClauses.push(`device LIKE ?`);
     whereParams.push(`%${device}%`);
+  }
+  if (visitorPath) {
+    whereClauses.push(`path LIKE ?`);
+    whereParams.push(`%${visitorPath}%`);
   }
 
   const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
@@ -316,11 +341,11 @@ app.get('/api/visitors', (req, res) => {
           res.json({
             visitors: rows,
             total: agg?.total ?? rows.length,
-            uniqueIp: agg?.unique_ip ?? 0,
-            locationKinds: agg?.location_kinds ?? 0,
-            deviceKinds: agg?.device_kinds ?? 0,
-            locationStats: locRows || [],
-            deviceStats: devRows || [],
+            unique_ip: agg?.unique_ip ?? 0,
+            location_kinds: agg?.location_kinds ?? 0,
+            device_kinds: agg?.device_kinds ?? 0,
+            location_stats: locRows || [],
+            device_stats: devRows || [],
           });
         });
       });
@@ -345,26 +370,113 @@ app.post('/api/visitors/batch-delete', requireAuth, (req, res) => {
 });
 
 // Get Visitor Trend
+function formatSqliteDateTime(date) {
+  return date.toISOString().slice(0, 19).replace('T', ' ');
+}
+
+function getRangeStartAndEnd(rangeKey) {
+  const now = new Date();
+  const end = new Date(now);
+  const start = new Date(now);
+
+  const startOfUtcDay = (d) => {
+    d.setUTCHours(0, 0, 0, 0);
+    return d;
+  };
+
+  switch (rangeKey) {
+    case 'today':
+      startOfUtcDay(start);
+      break;
+    case 'this_week': {
+      startOfUtcDay(start);
+      const day = start.getUTCDay();
+      const diff = day === 0 ? 6 : day - 1;
+      start.setUTCDate(start.getUTCDate() - diff);
+      break;
+    }
+    case 'this_month':
+      start.setUTCDate(1);
+      startOfUtcDay(start);
+      break;
+    case 'last_24h':
+      start.setTime(start.getTime() - 24 * 60 * 60 * 1000);
+      break;
+    case 'last_7':
+      startOfUtcDay(start);
+      start.setUTCDate(start.getUTCDate() - 6);
+      break;
+    case 'last_30':
+      startOfUtcDay(start);
+      start.setUTCDate(start.getUTCDate() - 29);
+      break;
+    case 'last_90':
+      startOfUtcDay(start);
+      start.setUTCDate(start.getUTCDate() - 89);
+      break;
+    case 'last_180':
+      startOfUtcDay(start);
+      start.setUTCDate(start.getUTCDate() - 179);
+      break;
+    default: {
+      const fallbackDays = Math.max(Number(rangeKey) || 30, 1);
+      startOfUtcDay(start);
+      start.setUTCDate(start.getUTCDate() - (fallbackDays - 1));
+    }
+  }
+
+  return {
+    start: formatSqliteDateTime(start),
+    end: formatSqliteDateTime(end)
+  };
+}
+
 app.get('/api/visitors/trend', requireAuth, (req, res) => {
+  const range = typeof req.query.range === 'string' ? req.query.range : null;
   const days = Number(req.query.days || 30);
-  
-  // SQLite date function to get date part only
-  // timestamp is like '2023-10-27 10:00:00'
+  const { start, end } = range ? getRangeStartAndEnd(range) : getRangeStartAndEnd(String(days));
+
   const sql = `
     SELECT 
       strftime('%Y-%m-%d', timestamp) as date,
       COUNT(*) as count,
       COUNT(DISTINCT ip) as unique_ip
     FROM visitors
-    WHERE timestamp >= date('now', '-' || ? || ' days')
+    WHERE timestamp BETWEEN ? AND ?
     GROUP BY date
     ORDER BY date ASC
   `;
   
-  db.all(sql, [days], (err, rows) => {
+  db.all(sql, [start, end], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });
+});
+
+app.get('/api/visitors/summary', requireAuth, (req, res) => {
+  const range = typeof req.query.range === 'string' ? req.query.range : 'last_30';
+  const { start, end } = getRangeStartAndEnd(range);
+
+  db.get(
+    `
+      SELECT
+        COUNT(*) AS visits,
+        COUNT(DISTINCT ip) AS unique_ip
+      FROM visitors
+      WHERE timestamp BETWEEN ? AND ?
+    `,
+    [start, end],
+    (err, row) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({
+        visits: row?.visits ?? 0,
+        unique_ip: row?.unique_ip ?? 0,
+        range,
+        start,
+        end,
+      });
+    }
+  );
 });
 
 // Export Visitor Logs
@@ -373,11 +485,11 @@ app.get('/api/visitors/export', requireAuth, (req, res) => {
     if (err) return res.status(500).send('Database Error');
     
     // Convert to CSV
-    const header = ['ID', 'IP', 'Location', 'Device', 'Time'];
+    const header = ['ID', 'IP', 'Location', 'Device', 'Path', 'Time'];
     const csvRows = rows.map(r => {
       // Escape quotes and handle commas
       const esc = (val) => `"${String(val || '').replace(/"/g, '""')}"`;
-      return [r.id, r.ip, r.location, r.device, r.timestamp].map(esc).join(',');
+      return [r.id, r.ip, r.location, r.device, r.path, r.timestamp].map(esc).join(',');
     });
     
     const csvContent = '\uFEFF' + [header.join(','), ...csvRows].join('\n'); // Add BOM for Excel

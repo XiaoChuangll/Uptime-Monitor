@@ -131,7 +131,6 @@ const getOption = () => {
 
 const initChart = () => {
   if (!chartRef.value) return;
-  
   chartInstance = echarts.init(chartRef.value);
   
   // Handle empty data case

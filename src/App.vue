@@ -2,11 +2,11 @@
 import { useThemeStore } from './stores/theme';
 import { useAuthStore } from './stores/auth';
 import { useLayoutStore } from './stores/layout';
-import { usePlayerStore } from './stores/player';
 import { useRouter, useRoute } from 'vue-router';
-import { Moon, Sunny, Monitor, ArrowLeft, Notebook, Setting, User } from '@element-plus/icons-vue';
-import { ref, onMounted, onUnmounted } from 'vue';
+import { Moon, Sunny, ArrowLeft, Notebook, Setting } from '@element-plus/icons-vue';
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue';
 import { getVisitorStats } from './services/api';
+import { trackVisit } from './services/api';
 import VisitorStatsDialog from './components/VisitorStatsDialog.vue';
 import ChangelogDialog from './components/ChangelogDialog.vue';
 import MiniPlayer from './components/MiniPlayer.vue';
@@ -15,18 +15,9 @@ import { ElMessage } from 'element-plus';
 const themeStore = useThemeStore();
 const auth = useAuthStore();
 const layoutStore = useLayoutStore();
-const playerStore = usePlayerStore();
 const router = useRouter();
 const route = useRoute();
 const goLogin = () => router.push({ name: 'login' });
-const logout = () => auth.logout();
-const handleMainUserCommand = (cmd: string) => {
-  if (cmd === 'admin') {
-    router.push({ name: 'admin' });
-  } else if (cmd === 'logout') {
-    logout();
-  }
-};
 
 const visitorCount = ref<number>(0);
 const showVisitorDialog = ref(false);
@@ -50,36 +41,22 @@ const openChangelog = () => {
   showChangelog.value = true;
 };
 
-const handleMusicLogin = () => {
-  if (!playerStore.userProfile) {
-    playerStore.showLoginDialog = true;
+const isAdminRoute = computed(() => route.path.startsWith('/admin'));
+
+const goAdminEntry = () => {
+  if (auth.isLoggedIn()) {
+    router.push({ name: 'admin' });
+  } else {
+    ElMessage.info('请先登录管理员账号');
+    goLogin();
   }
 };
 
-const handleMusicUserCommand = (cmd: string) => {
-  if (cmd === 'logout') {
-    localStorage.removeItem('netease_cookie');
-    playerStore.setCookie('');
-    playerStore.setUserProfile(null);
-    ElMessage.success('已退出网易云登录');
-  } else if (cmd === 'mine') {
-    playerStore.viewModeRequest = 'mine';
-  } else if (cmd === 'refresh') {
-     // Trigger refresh in MusicView or Store? 
-     // Ideally Store should handle refresh, but logic is currently in MusicView.
-     // We can just clear profile and let MusicView refetch or force reload.
-     // For now, let's simply reload page or re-fetch if we move logic to store.
-     // Simplest: just emit event or let user know.
-     // Actually, let's move fetchUserProfile to store later. 
-     // For now, we can just clear profile to trigger reactivity if needed, 
-     // or relying on MusicView's onMounted to fetch is not enough if we are already here.
-     // We will implement full logic in MusicView to watch store state or events.
-     // But wait, if we are in App.vue, how to call MusicView's fetch?
-     // We can emit a global event or use a shared action in store.
-     // Let's add a 'refreshTrigger' to playerStore or similar.
-     // Or just let user re-login.
-     ElMessage.info('请在音乐页面刷新');
-  }
+const handleAdminCommand = (command: string) => {
+  if (command !== 'logout') return;
+  auth.logout();
+  ElMessage.success('已退出登录');
+  router.push({ name: 'home' });
 };
 
 onMounted(() => {
@@ -89,6 +66,14 @@ onMounted(() => {
 onUnmounted(() => {
   if (visitorTimer) window.clearInterval(visitorTimer);
 });
+
+watch(
+  () => route.fullPath,
+  (path) => {
+    trackVisit(path);
+  },
+  { immediate: true }
+);
 </script>
 
 <template>
@@ -101,8 +86,8 @@ onUnmounted(() => {
              <span style="font-family: 'Segoe UI', sans-serif; font-weight: bold; letter-spacing: 1px;">MUSIC</span>
           </template>
           <template v-else>
-            <el-icon :size="24" class="mr-2"><Monitor /></el-icon>
-            <span>服务监控</span>
+            <img src="/favicon.svg" alt="Uptime Monitor" class="logo-icon mr-2" />
+            <span>Uptime Monitor</span>
           </template>
         </div>
         <div class="logo page-nav" v-else key="scrolled">
@@ -119,35 +104,18 @@ onUnmounted(() => {
       </transition>
       
       <div class="actions">
-        <template v-if="route.name !== 'music' && route.name !== 'login'">
-          <el-dropdown v-if="auth.isLoggedIn()" trigger="click" @command="handleMainUserCommand" class="mr-2">
-            <el-button circle :icon="Setting" />
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="admin">进入后台</el-dropdown-item>
-                <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-          <el-button v-else :icon="User" circle @click="goLogin" class="mr-2" />
-        </template>
+        <el-dropdown v-if="isAdminRoute && auth.isLoggedIn()" trigger="click" @command="handleAdminCommand">
+          <el-button :icon="Setting" circle class="mr-2" />
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+        <el-button v-else :icon="Setting" circle @click="goAdminEntry" class="mr-2" />
         
         <!-- Changelog Button (Hidden on Music Page) -->
         <el-button v-if="route.name !== 'music'" :icon="Notebook" circle @click="openChangelog" class="mr-2" />
-        
-        <!-- Music Login Button (Only on Music Page) -->
-        <template v-if="route.name === 'music'">
-          <el-dropdown v-if="playerStore.userProfile" trigger="click" @command="handleMusicUserCommand" class="mr-2">
-            <el-avatar :size="32" :src="playerStore.userProfile.avatarUrl" style="cursor: pointer; border: 1px solid var(--el-border-color);" />
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="mine">我的</el-dropdown-item>
-                <el-dropdown-item command="logout">退出网易云</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-          <el-button v-else :icon="User" circle @click="handleMusicLogin" class="mr-2" />
-        </template>
 
         <el-button :icon="themeStore.isDark ? Moon : Sunny" circle @click="themeStore.toggleTheme" />
       </div>
@@ -163,7 +131,7 @@ onUnmounted(() => {
         <div class="spacer"></div>
         <el-button v-if="route.name !== 'about'" link @click="router.push({ name: 'about' })" class="mr-2">关于</el-button>
         <template v-if="route.name !== 'music'">
-          <!-- logout button removed, moved to header dropdown -->
+          <el-button v-if="!auth.isLoggedIn()" type="primary" @click="goLogin">登录</el-button>
         </template>
       </div>
       <VisitorStatsDialog v-model="showVisitorDialog" />
@@ -180,7 +148,6 @@ onUnmounted(() => {
 }
 .header {
   background-color: var(--el-bg-color);
-  border-bottom: 1px solid var(--el-border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -198,6 +165,11 @@ onUnmounted(() => {
   font-size: 1.2rem;
   font-weight: 600;
   color: var(--el-text-color-primary);
+}
+.logo-icon {
+  width: 24px;
+  height: 24px;
+  display: block;
 }
 .page-nav {
   display: flex;

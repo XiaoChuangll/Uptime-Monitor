@@ -207,6 +207,7 @@ db.serialize(() => {
   ensureColumn('about_page', 'author_avatar', 'TEXT');
   ensureColumn('about_page', 'author_github', 'TEXT');
   ensureColumn('about_page', 'content_markdown', 'TEXT');
+  ensureColumn('visitors', 'path', 'TEXT');
 });
 
 module.exports = db;

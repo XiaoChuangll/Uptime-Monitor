@@ -1,4 +1,4 @@
-export type WSHandler = (type: string, payload: any) => void;
+export type WSHandler = ((type: string, payload: any) => void) | ((message: { type: string; payload: any; ts?: number }) => void);
 
 let ws: WebSocket | null = null;
 let handlers: WSHandler[] = [];
@@ -9,7 +9,13 @@ export function connectWS() {
   ws.onmessage = (ev) => {
     try {
       const data = JSON.parse(ev.data);
-      handlers.forEach(h => h(data.type, data.payload));
+      handlers.forEach((h) => {
+        if (h.length <= 1) {
+          (h as (message: { type: string; payload: any; ts?: number }) => void)(data);
+        } else {
+          (h as (type: string, payload: any) => void)(data.type, data.payload);
+        }
+      });
     } catch {}
   };
   ws.onclose = () => {
@@ -19,5 +25,7 @@ export function connectWS() {
 
 export function onWS(handler: WSHandler) {
   handlers.push(handler);
+  return () => {
+    handlers = handlers.filter(h => h !== handler);
+  };
 }
-

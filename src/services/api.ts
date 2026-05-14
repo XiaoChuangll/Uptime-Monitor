@@ -55,6 +55,7 @@ export interface Visitor {
   ip: string;
   location: string;
   device: string;
+  path?: string;
   timestamp: string;
 }
 
@@ -115,16 +116,34 @@ export interface VisitorStats {
   deviceStats?: Array<{ name: string; count: number }>;
 }
 
-export const getVisitorStats = async (page?: number, pageSize?: number, filters?: { location?: string; device?: string }): Promise<VisitorStats> => {
+export const trackVisit = async (path: string) => {
+  try {
+    await apiClient.get('/public/track', { params: { path } });
+  } catch {
+    // Ignore tracking failures to avoid affecting page rendering.
+  }
+};
+
+export const getVisitorStats = async (page?: number, pageSize?: number, filters?: { location?: string; device?: string; path?: string }): Promise<VisitorStats> => {
   try {
     const params: any = {};
     if (page) params.page = page;
     if (pageSize) params.pageSize = pageSize;
     if (filters?.location) params.location = filters.location;
     if (filters?.device) params.device = filters.device;
+    if (filters?.path) params.path = filters.path;
 
     const response = await apiClient.get('/visitors', { params });
-    return response.data;
+    const data = response.data || {};
+    return {
+      visitors: data.visitors || [],
+      total: data.total || 0,
+      uniqueIp: data.uniqueIp ?? data.unique_ip ?? 0,
+      locationKinds: data.locationKinds ?? data.location_kinds ?? 0,
+      deviceKinds: data.deviceKinds ?? data.device_kinds ?? 0,
+      locationStats: data.locationStats ?? data.location_stats ?? [],
+      deviceStats: data.deviceStats ?? data.device_stats ?? [],
+    };
   } catch (error) {
     console.error('Failed to fetch visitor stats', error);
     return { visitors: [], total: 0 };
@@ -135,9 +154,22 @@ export const batchDeleteVisitors = async (ids: number[]): Promise<void> => {
   await apiClient.post('/visitors/batch-delete', { ids });
 };
 
-export const getVisitorTrend = async (days: number = 30): Promise<Array<{ date: string; count: number; unique_ip: number }>> => {
-  const response = await apiClient.get('/visitors/trend', { params: { days } });
+export const getVisitorTrend = async (rangeOrDays: number | string = 30): Promise<Array<{ date: string; count: number; unique_ip: number }>> => {
+  const params = typeof rangeOrDays === 'number' ? { days: rangeOrDays } : { range: rangeOrDays };
+  const response = await apiClient.get('/visitors/trend', { params });
   return response.data;
+};
+
+export const getVisitorSummary = async (range: string): Promise<{ visits: number; uniqueIp: number; range: string; start: string; end: string }> => {
+  const response = await apiClient.get('/visitors/summary', { params: { range } });
+  const data = response.data || {};
+  return {
+    visits: data.visits || 0,
+    uniqueIp: data.uniqueIp ?? data.unique_ip ?? 0,
+    range: data.range || range,
+    start: data.start || '',
+    end: data.end || '',
+  };
 };
 
 export const exportVisitors = async (): Promise<void> => {

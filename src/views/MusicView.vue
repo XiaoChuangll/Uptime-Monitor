@@ -1,79 +1,84 @@
 <template>
   <div class="music-view" :style="{ paddingBottom: (playerStore.showPlayer && playerStore.currentTrack) ? (isMobile ? '85px' : '100px') : '20px' }">
-    <el-page-header ref="pageHeaderRef" @back="goBack" class="mb-4">
-      <template #content>
-        <span class="text-large font-600 mr-3 no-wrap-title"> {{ pageTitle }} </span>
-      </template>
-      <template #extra>
-        <div class="header-actions">
-           
-        </div>
-      </template>
-    </el-page-header>
-
-    <!-- API Status Line (Separate Line) -->
-    <div class="api-status-bar mb-4">
-      <div class="status-tag-wrapper">
-        <el-dropdown v-if="currentApi" trigger="click" @command="handleSwitchApi">
-           <el-tag type="success" size="small" effect="plain" class="api-tag cursor-pointer">
-             <span class="flex-center">
-               API: {{ currentApi.friendly_name }} ({{ currentApi.latency }}ms)
-               <el-icon class="ml-1"><ArrowDown /></el-icon>
-             </span>
-           </el-tag>
-           <template #dropdown>
-              <el-dropdown-menu>
-                 <el-dropdown-item v-for="api in availableApis" :key="api.id" :command="api">
-                    {{ api.friendly_name }}
-                    <el-tag v-if="api.latency" size="small" type="info" class="ml-2">{{ api.latency }}ms</el-tag>
-                 </el-dropdown-item>
-                 <el-dropdown-item v-if="availableApis.length === 0" disabled>无可用节点</el-dropdown-item>
-              </el-dropdown-menu>
-           </template>
-        </el-dropdown>
-
-        <el-tag v-else-if="checkingApi" type="warning" size="small" effect="plain" class="api-tag">
-          <span class="flex-center">
-            <el-icon class="is-loading mr-1"><Loading /></el-icon> 正在寻找最佳线路...
-          </span>
-        </el-tag>
-        <el-tag v-else type="danger" size="small" effect="plain" class="api-tag">
-          <span class="flex-center">
-            无可用线路
-          </span>
-        </el-tag>
-      </div>
-      
-      <div class="api-actions ml-2">
-         <el-tooltip content="重新检测最佳线路" placement="top" v-if="!currentApi && !checkingApi">
-            <el-button circle size="small" :icon="Refresh" @click="findBestApi" />
-         </el-tooltip>
-         <el-tooltip content="刷新数据缓存" placement="top" v-if="currentApi">
-            <el-button circle size="small" :icon="RefreshRight" @click="handleRefreshCache" />
-         </el-tooltip>
-      </div>
-    </div>
-
+    <div ref="pageHeaderRef" class="page-header-sentinel" aria-hidden="true"></div>
     <!-- Main Content -->
     <div class="music-content" v-loading="loading">
       
       <!-- Search -->
-      <el-card class="mb-4 search-card" shadow="hover" v-if="viewMode === 'home' || viewMode === 'mine'">
-         <div class="search-box">
-             <el-input 
-               v-model="searchKeyword" 
-               placeholder="搜索歌曲、歌手、专辑..." 
-               class="search-input" 
-               @keyup.enter="handleSearch" 
-               clearable
-             >
+      <el-card class="mb-4 search-card" shadow="hover" v-if="viewMode === 'home' || viewMode === 'mine' || viewMode === 'podcast'">
+         <div class="header-bar" :class="{ 'mobile-layout': isMobile }">
+            <div class="api-status-wrapper">
+              <el-dropdown v-if="currentApi" trigger="click" @command="handleSwitchApi">
+                 <el-tag type="success" size="small" effect="plain" class="api-tag cursor-pointer">
+                   <span class="flex-center">
+                     API: {{ currentApi.friendly_name }} ({{ currentApi.latency }}ms)
+                     <el-icon class="ml-1"><ArrowDown /></el-icon>
+                   </span>
+                 </el-tag>
+                 <template #dropdown>
+                    <el-dropdown-menu>
+                       <el-dropdown-item v-for="api in availableApis" :key="api.id" :command="api">
+                          {{ api.friendly_name }}
+                          <el-tag v-if="api.latency" size="small" type="info" class="ml-2">{{ api.latency }}ms</el-tag>
+                       </el-dropdown-item>
+                       <el-dropdown-item v-if="availableApis.length === 0" disabled>无可用节点</el-dropdown-item>
+                    </el-dropdown-menu>
+                 </template>
+              </el-dropdown>
+              <el-tag v-else-if="checkingApi" type="warning" size="small" effect="plain" class="api-tag">
+                <span class="flex-center">
+                  <el-icon class="is-loading mr-1"><Loading /></el-icon> 正在寻找最佳线路...
+                </span>
+              </el-tag>
+              <el-tag v-else type="danger" size="small" effect="plain" class="api-tag">
+                <span class="flex-center">无可用线路</span>
+              </el-tag>
+            </div>
+
+            <div class="search-box">
+              <el-input
+                v-model="searchKeyword"
+                placeholder="搜索歌曲、歌手、专辑..."
+                class="search-input"
+                @keyup.enter="handleSearch"
+                clearable
+              >
                 <template #prefix>
                   <el-icon><Search /></el-icon>
                 </template>
                 <template #append>
                   <el-button @click="handleSearch" :loading="searchLoading">搜索</el-button>
                 </template>
-             </el-input>
+              </el-input>
+            </div>
+
+            <div class="header-right-actions">
+              <div class="api-actions">
+                <el-tooltip content="重新检测最佳线路" placement="bottom" v-if="!currentApi && !checkingApi">
+                  <el-button circle size="small" :icon="Refresh" @click="findBestApi" />
+                </el-tooltip>
+              </div>
+              <div class="user-actions">
+                <template v-if="playerStore.userProfile">
+                  <el-dropdown trigger="click" @command="handleUserCommand">
+                    <div class="user-avatar-wrapper">
+                      <el-avatar :size="30" :src="playerStore.userProfile.avatarUrl" />
+                      <span class="username">{{ playerStore.userProfile.nickname }}</span>
+                    </div>
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
+                </template>
+                <el-button v-else link type="primary" size="small" @click="playerStore.showLoginDialog = true">
+                  <span class="flex-center">
+                    <el-icon class="mr-1"><User /></el-icon> 登录
+                  </span>
+                </el-button>
+              </div>
+            </div>
          </div>
          <div class="search-type-selector mt-3" v-if="searchKeyword || searchResults.length > 0">
             <el-radio-group v-model="searchType" size="small" @change="handleSearch">
@@ -87,7 +92,15 @@
       <!-- Search Results -->
       <div v-if="searchResults.length > 0" class="section mb-4">
         <div class="section-header">
-           <h3>搜索结果</h3>
+           <div class="search-result-title">
+             <h3>搜索结果</h3>
+             <el-select v-model="downloadQuality" size="small" class="quality-select">
+               <el-option label="标准" value="standard" />
+               <el-option label="高" value="higher" />
+               <el-option label="极高" value="exhigh" />
+               <el-option label="无损" value="lossless" />
+             </el-select>
+           </div>
            <el-button link @click="clearSearch">清除</el-button>
         </div>
         
@@ -98,11 +111,13 @@
                  <template #error><el-icon><Headset /></el-icon></template>
               </el-image>
               <div class="song-info">
-                 <div class="song-name" v-html="highlight(song.name)"></div>
+                 <div class="song-name-row">
+                   <div class="song-name" v-html="highlight(song.name)"></div>
+                   <div v-if="isVipSong(song)" class="song-vip-badge">VIP</div>
+                 </div>
                  <div class="song-artist">{{ getArtistName(song) }} - {{ song.al?.name || song.album?.name }}</div>
               </div>
               <div class="song-action">
-                 <el-button circle size="small" type="primary" :icon="VideoPlay" @click.stop="playSong(song)" />
                  <el-button circle size="small" :icon="Download" @click.stop="downloadSong(song)" />
               </div>
            </div>
@@ -145,8 +160,8 @@
       <!-- Discovery Sections (Only show when no search) -->
       <template v-if="searchResults.length === 0">
 
-        <!-- Greet Section (Home/Mine) -->
-      <div class="section mb-4" v-if="viewMode === 'home' || viewMode === 'mine'">
+        <!-- Greet Section (Home/Mine/Podcast) -->
+      <div class="section mb-4" v-if="viewMode === 'home' || viewMode === 'mine' || viewMode === 'podcast'">
          <div class="greet-section mb-3">
             <div class="flex-between-center">
                <h2 class="greet-title">{{ greeting }}{{ playerStore.userProfile ? '，' + playerStore.userProfile.nickname : '' }}</h2>
@@ -154,17 +169,10 @@
                <el-radio-group v-model="mainTab" size="small" class="custom-switch" @change="handleMainTabChange">
                   <el-radio-button label="home">首页</el-radio-button>
                   <el-radio-button label="mine">歌单</el-radio-button>
+                  <el-radio-button label="podcast">播客</el-radio-button>
                </el-radio-group>
             </div>
             <div class="greet-subtitle">由此开启好心情 ~</div>
-            
-            <!-- Secondary Switcher for Mine View -->
-            <div v-if="viewMode === 'mine'" class="mt-3">
-               <el-radio-group v-model="mineSubMode" size="small">
-                  <el-radio-button label="playlist">歌单</el-radio-button>
-                    <el-radio-button label="podcast">播客</el-radio-button>
-                 </el-radio-group>
-              </div>
          </div>
       </div>
 
@@ -358,10 +366,7 @@
         </div>
 
         <div v-else-if="viewMode === 'mine'" key="mine">
-            <!-- User Playlists (Mine) -->
             <div class="section mb-4">
-                <!-- Playlist View -->
-                <template v-if="mineSubMode === 'playlist'">
                 <el-skeleton :loading="userPlaylistLoading" animated>
                     <template #template>
                         <div class="playlist-grid">
@@ -400,10 +405,11 @@
                     hide-on-single-page
                 />
                 </div>
-                </template>
+            </div>
+        </div>
 
-                <!-- Podcast View -->
-            <template v-else-if="mineSubMode === 'podcast'">
+        <div v-else-if="viewMode === 'podcast'" key="podcast">
+            <div class="section mb-4">
                 <el-skeleton :loading="userPodcastLoading" animated>
                     <template #template>
                         <div class="playlist-grid">
@@ -439,7 +445,6 @@
                     hide-on-single-page
                     />
                 </div>
-            </template>
             </div>
         </div>
 
@@ -610,7 +615,7 @@ import { useLayoutStore } from '../stores/layout';
 import { proxyRequest, getMusicApis } from '../services/api';
 import { musicCache } from '../utils/cache'; // Import CacheManager
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Search, Loading, Headset, VideoPlay, Download, ArrowRight, Refresh, ArrowDown, Calendar, Star, CaretRight, Delete, VideoPause, Collection, RefreshRight } from '@element-plus/icons-vue';
+import { Search, Loading, Headset, VideoPlay, Download, ArrowRight, Refresh, ArrowDown, Calendar, Star, CaretRight, Delete, VideoPause, Collection, User } from '@element-plus/icons-vue';
 
 const router = useRouter();
 const playerStore = usePlayerStore();
@@ -694,6 +699,7 @@ const searchResults = ref<any[]>([]);
 const currentPage = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
+const downloadQuality = ref<'standard' | 'higher' | 'exhigh' | 'lossless'>('standard');
 const radarPlaylists = ref<any[]>([]);
 const radarLoading = ref(false);
 const recommendPlaylists = ref<any[]>([]);
@@ -723,13 +729,12 @@ const pagedPlaylistTracks = computed(() => {
 });
 
 // View Mode
-const viewMode = ref<'home' | 'radar' | 'recommend' | 'rank' | 'mine'>('home');
-const mineSubMode = ref<'playlist' | 'podcast'>('playlist');
+const viewMode = ref<'home' | 'radar' | 'recommend' | 'rank' | 'mine' | 'podcast'>('home');
 
 const transitionName = ref('slide-left');
 
 watch(viewMode, (newVal, oldVal) => {
-  const order = ['home', 'mine'];
+  const order = ['home', 'mine', 'podcast'];
   const newIndex = order.indexOf(newVal);
   const oldIndex = order.indexOf(oldVal);
   
@@ -742,13 +747,14 @@ watch(viewMode, (newVal, oldVal) => {
 });
 
 const mainTab = computed({
-  get: () => viewMode.value === 'mine' ? 'mine' : 'home',
+  get: () => (viewMode.value === 'mine' || viewMode.value === 'podcast' ? viewMode.value : 'home'),
   set: (val) => {
     if (val === 'mine') {
-       openMore('mine');
+      openMore('mine');
+    } else if (val === 'podcast') {
+      openMore('podcast');
     } else {
        viewMode.value = 'home';
-       pageTitle.value = '在线播放';
        layoutStore.setPageInfo('在线播放', true, goBack);
     }
   }
@@ -758,12 +764,9 @@ const handleMainTabChange = () => {
    // Logic handled by computed setter
 };
 
-const pageTitle = ref('在线播放');
-
 const goBack = () => {
     if (viewMode.value !== 'home') {
         viewMode.value = 'home';
-        pageTitle.value = '在线播放';
         layoutStore.setPageInfo('在线播放', true, goBack);
         playerStore.viewModeRequest = ''; // Reset request
         return;
@@ -771,7 +774,7 @@ const goBack = () => {
     router.push('/');
 };
 
-const openMore = async (mode: 'radar' | 'recommend' | 'rank' | 'mine') => {
+const openMore = async (mode: 'radar' | 'recommend' | 'rank' | 'mine' | 'podcast') => {
     if (!currentApi.value) return;
     
     // Clear search results when switching views
@@ -785,8 +788,8 @@ const openMore = async (mode: 'radar' | 'recommend' | 'rank' | 'mine') => {
     else if (mode === 'recommend') title = '推荐歌单';
     else if (mode === 'rank') title = '排行榜';
     else if (mode === 'mine') title = '我的歌单';
+    else if (mode === 'podcast') title = '我的播客';
     
-    pageTitle.value = title;
     layoutStore.setPageInfo(title, true, goBack);
     
     if (mode === 'radar') {
@@ -812,12 +815,9 @@ const openMore = async (mode: 'radar' | 'recommend' | 'rank' | 'mine') => {
     } else if (mode === 'rank') {
         // topList already has all data from init
     } else if (mode === 'mine') {
-        // Fetch user playlists if empty
-        if (mineSubMode.value === 'playlist') {
-            if (userPlaylists.value.length === 0) fetchUserPlaylists();
-        } else if (mineSubMode.value === 'podcast') {
-            if (userPodcasts.value.length === 0) fetchUserPodcasts();
-        }
+        if (userPlaylists.value.length === 0) fetchUserPlaylists();
+    } else if (mode === 'podcast') {
+        if (userPodcasts.value.length === 0) fetchUserPodcasts();
     }
 };
 
@@ -837,9 +837,6 @@ const fetchUserPodcasts = async () => {
         // DJ Sublist (Subscribed Podcasts)
         const res = await proxyRequest(`${baseUrl}/dj/sublist?limit=${limit}&offset=${offset}&cookie=${cookieEncoded}`, 'GET', headers, {});
         
-        // Debug
-        console.log('DJ Sublist Response:', res.data);
-
         if (res.data?.djRadios) {
             userPodcasts.value = res.data.djRadios;
             userPodcastTotal.value = res.data.count || res.data.djRadios.length; 
@@ -997,17 +994,6 @@ watch(() => playerStore.viewModeRequest, (val) => {
     }
 });
 
-// Watch mineSubMode to fetch data
-watch(mineSubMode, (val) => {
-    if (viewMode.value === 'mine') {
-        if (val === 'playlist' && userPlaylists.value.length === 0) {
-            fetchUserPlaylists();
-        } else if (val === 'podcast' && userPodcasts.value.length === 0) {
-            fetchUserPodcasts();
-        }
-    }
-});
-
 // Watch user profile to fetch playlists
 watch(() => playerStore.userProfile, (newVal) => {
     if (newVal) {
@@ -1134,12 +1120,6 @@ const handleSwitchApi = (api: any) => {
 const initData = async () => {
   fetchUserProfile();
   fetchDiscovery();
-};
-
-const handleRefreshCache = () => {
-    musicCache.remove('discovery_data');
-    fetchDiscovery(true);
-    ElMessage.success('已刷新缓存');
 };
 
 const fetchDiscovery = async (forceRefresh = false) => {
@@ -1304,6 +1284,18 @@ const openLogin = async () => {
   } catch (e) {
       loginStatus.value = '获取失败，请重试';
   }
+};
+
+const handleUserCommand = (command: string) => {
+  if (command !== 'logout') return;
+  localStorage.removeItem('netease_cookie');
+  playerStore.setCookie('');
+  playerStore.setUserProfile(null);
+  if (viewMode.value === 'mine' || viewMode.value === 'podcast') {
+    viewMode.value = 'home';
+    layoutStore.setPageInfo('在线播放', true, goBack);
+  }
+  ElMessage.success('已退出登录');
 };
 
 const checkLoginStatus = () => {
@@ -1498,7 +1490,12 @@ const downloadSong = async (song: any) => {
         const cookie = getCookie();
         const headers = cookie ? { Cookie: cookie } : {};
         const cookieEncoded = cookie ? encodeURIComponent(cookie) : '';
-        const res = await proxyRequest(`${baseUrl}/song/url?id=${song.id}&cookie=${cookieEncoded}`, 'GET', headers, {});
+        const res = await proxyRequest(
+          `${baseUrl}/song/url/v1?id=${song.id}&level=${downloadQuality.value}&cookie=${cookieEncoded}`,
+          'GET',
+          headers,
+          {}
+        );
         const url = res.data?.data?.[0]?.url;
         if (url) {
             window.open(url, '_blank');
@@ -1523,6 +1520,10 @@ const getCover = (song: any) => {
     return url ? url.replace(/^http:/, 'https:') : '';
 };
 const getArtistName = (song: any) => (song.ar || song.artists || []).map((a: any) => a.name).join(', ');
+const isVipSong = (song: any) => {
+    const fee = song?.fee ?? song?.privilege?.fee;
+    return fee === 1 || fee === 4 || Boolean(song?.privilege?.paidBigBang);
+};
 const highlight = (text: string) => {
     if (!searchKeyword.value) return text;
     return text.replace(new RegExp(searchKeyword.value, 'gi'), match => `<span class="text-primary">${match}</span>`);
@@ -1563,15 +1564,11 @@ const openPlaylist = async (list: any) => {
     }
 };
 
-// Scroll Handler
 let ticking = false;
 
 const checkScrollPosition = () => {
   if (!pageHeaderRef.value) return;
-  const el = (pageHeaderRef.value as any).$el || pageHeaderRef.value;
-  if (!el || !el.getBoundingClientRect) return;
-
-  const rect = el.getBoundingClientRect();
+  const rect = pageHeaderRef.value.getBoundingClientRect();
   layoutStore.setHeaderState(rect.bottom < 60);
 };
 
@@ -1595,6 +1592,7 @@ onMounted(async () => {
     window.addEventListener('resize', checkMobile);
     checkMobile();
     layoutStore.setPageInfo('在线播放', true, goBack);
+    checkScrollPosition();
 });
 
 onUnmounted(() => {
@@ -1610,6 +1608,9 @@ onUnmounted(() => {
 .music-view {
   max-width: 1200px;
   margin: 0 auto;
+}
+.page-header-sentinel {
+  height: 44px;
 }
 .mb-4 { margin-bottom: 20px; }
 .mt-3 { margin-top: 12px; }
@@ -1659,10 +1660,6 @@ onUnmounted(() => {
   align-items: center;
 }
 
-.header-actions {
-  display: flex;
-  align-items: center;
-}
 .user-avatar-wrapper {
   display: flex;
   align-items: center;
@@ -1684,13 +1681,40 @@ onUnmounted(() => {
 .search-card {
   border-radius: 12px;
 }
+.header-bar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+.api-status-wrapper,
+.header-right-actions {
+  display: flex;
+  align-items: center;
+}
+.header-right-actions {
+  justify-content: flex-end;
+  gap: 12px;
+}
+.user-actions {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
 .search-box {
   display: flex;
   justify-content: center;
 }
 .search-input {
-  max-width: 600px;
   width: 100%;
+}
+.search-result-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.quality-select {
+  width: 110px;
 }
 
 .section-header {
@@ -1880,10 +1904,24 @@ onUnmounted(() => {
   flex: 1;
   overflow: hidden;
 }
+.song-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
 .song-name {
   font-weight: 500;
   font-size: 14px;
-  margin-bottom: 4px;
+}
+.song-vip-badge {
+  padding: 0 6px;
+  line-height: 18px;
+  border-radius: 999px;
+  background: rgba(245, 108, 108, 0.12);
+  color: #f56c6c;
+  font-size: 12px;
+  font-weight: 600;
 }
 .song-artist {
   font-size: 12px;
@@ -1939,6 +1977,16 @@ onUnmounted(() => {
 @media (max-width: 768px) {
   .hidden-xs-only { display: none; }
   .rank-grid { grid-template-columns: 1fr; }
+  .header-bar {
+    grid-template-columns: 1fr;
+  }
+  .header-right-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+  .search-result-title {
+    flex-wrap: wrap;
+  }
 }
 
 .album-grid, .artist-grid {
