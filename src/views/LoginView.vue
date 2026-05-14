@@ -1,7 +1,12 @@
 <template>
   <div class="login-view">
     <el-card class="login-card">
-      <h2>管理员登录</h2>
+      <div class="login-header">
+        <el-button link @click="goBack" class="back-btn">
+          <el-icon :size="20"><ArrowLeft /></el-icon>
+        </el-button>
+        <h2>管理员登录</h2>
+      </div>
       <el-form :model="form" label-width="100px" @submit.prevent>
         <el-form-item label="用户名"><el-input v-model="form.username" /></el-form-item>
         <el-form-item label="密码"><el-input v-model="form.password" type="password" /></el-form-item>
@@ -19,6 +24,7 @@ import { ref } from 'vue';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import { ArrowLeft } from '@element-plus/icons-vue';
 
 const router = useRouter();
 const store = useAuthStore();
@@ -26,13 +32,17 @@ const form = ref({ username: '', password: '' });
 const loading = ref(false);
 const error = ref('');
 
+const goBack = () => {
+  router.push('/');
+};
+
 const login = async () => {
   error.value = '';
   loading.value = true;
   try {
     const { data } = await axios.post('/api/auth/login', form.value);
     store.setToken(data.token);
-    router.push({ name: 'home' });
+    router.push({ name: 'admin' });
   } catch (e: any) {
     error.value = e?.response?.data?.error || '登录失败';
   } finally {
@@ -45,5 +55,8 @@ const login = async () => {
 .login-view { display: flex; justify-content: center; margin-top: 80px; }
 .login-card { width: 400px; }
 .mt-2 { margin-top: 12px; }
+.login-header { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
+.login-header h2 { margin: 0; }
+.back-btn { padding: 4px; }
 </style>
 

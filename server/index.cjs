@@ -1063,17 +1063,40 @@ app.get('/api/site-cards', requireAuth, (req, res) => {
 
 app.put('/api/site-cards/:id', requireAuth, (req, res) => {
   const id = Number(req.params.id);
-  const { title, enabled, sort_order, style } = req.body;
-  
+  const fields = [];
+  const values = [];
+
+  if (req.body.title !== undefined) {
+    fields.push('title=?');
+    values.push(req.body.title);
+  }
+  if (req.body.enabled !== undefined) {
+    fields.push('enabled=?');
+    values.push(req.body.enabled);
+  }
+  if (req.body.sort_order !== undefined) {
+    fields.push('sort_order=?');
+    values.push(req.body.sort_order);
+  }
+  if (req.body.style !== undefined) {
+    fields.push('style=?');
+    values.push(typeof req.body.style === 'object' ? JSON.stringify(req.body.style) : req.body.style);
+  }
+
+  if (fields.length === 0) {
+    return res.status(400).json({ error: 'No fields to update' });
+  }
+
+  fields.push('updated_at=CURRENT_TIMESTAMP');
+  values.push(id);
+
   db.run(
-    `UPDATE site_cards SET title=?, enabled=?, sort_order=?, style=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`,
-    [title, enabled, sort_order, typeof style === 'object' ? JSON.stringify(style) : style, id],
+    `UPDATE site_cards SET ${fields.join(', ')} WHERE id=?`,
+    values,
     function(err) {
       if (err) return res.status(500).json({ error: err.message });
-      logAction(req.user?.username, 'update', 'site_cards', id, { title, enabled, sort_order });
+      logAction(req.user?.username, 'update', 'site_cards', id, req.body);
       res.json({ changed: this.changes });
-      // Broadcast update if we were using sockets for this, but HomeView just fetches on mount. 
-      // If we want real-time we should broadcast.
       db.all(`SELECT * FROM site_cards ORDER BY sort_order ASC`, [], (e2, rows) => {
         if (!e2) broadcast('site_cards:update', rows);
       });
