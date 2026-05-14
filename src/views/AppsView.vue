@@ -54,6 +54,7 @@ import { useRouter } from 'vue-router';
 import { Monitor, Download } from '@element-plus/icons-vue';
 import { getPublicApps, type AppItem } from '../services/admin';
 import { useLayoutStore } from '../stores/layout';
+import { formatImageUrl } from '../utils/format';
 
 const router = useRouter();
 const layoutStore = useLayoutStore();
@@ -71,21 +72,31 @@ const fetchApps = async () => {
 };
 
 const iconUrl = (item: any) => {
-  if (item.icon_url) return item.icon_url;
-  const direct = (item as any).icon || (item as any).logo;
-  if (direct) return direct;
-  const link = (item as any).url || (item as any).link || (item as any).homepage;
-  if (!link) return null;
-  try {
-    const u = new URL(link);
-    return `${u.origin}/favicon.ico`;
-  } catch {
-    return null;
+  let url = null;
+  if (item.icon_url) {
+    url = item.icon_url;
+  } else {
+    const direct = (item as any).icon || (item as any).logo;
+    if (direct) {
+      url = direct;
+    } else {
+      const link = (item as any).url || (item as any).link || (item as any).homepage;
+      if (link) {
+        try {
+          const u = new URL(link);
+          url = `${u.origin}/favicon.ico`;
+        } catch {
+          url = null;
+        }
+      }
+    }
   }
+  return formatImageUrl(url);
 };
 
 const bgUrl = (item: any) => {
-  return item.bg_url || (item as any).banner || (item as any).cover || (item as any).image || (item as any).thumbnail || (item as any).screenshot || null;
+  const url = item.bg_url || (item as any).banner || (item as any).cover || (item as any).image || (item as any).thumbnail || (item as any).screenshot || null;
+  return formatImageUrl(url);
 };
 
 const download = (item: any) => {

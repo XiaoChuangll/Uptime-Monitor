@@ -369,7 +369,7 @@ export interface AboutPage {
   version?: string;
 }
 export const getAboutPage = async (): Promise<AboutPage> => {
-  const response = await apiClient.get('/about');
+  const response = await apiClient.get('/public/about-page');
   return response.data || {};
 };
 export const updateAboutPage = async (data: Partial<AboutPage>): Promise<void> => {

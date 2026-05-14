@@ -27,10 +27,10 @@
             <span class="value">{{ aboutData.author_name || 'ChuEng' }}</span>
             <div class="author-info" v-if="aboutData.author_avatar">
               <el-image 
-                :src="aboutData.author_avatar" 
+                :src="formatImageUrl(aboutData.author_avatar)" 
                 fit="cover" 
                 class="author-avatar"
-                :preview-src-list="[aboutData.author_avatar]"
+                :preview-src-list="[formatImageUrl(aboutData.author_avatar)]"
               />
             </div>
           </div>
@@ -88,7 +88,7 @@
                 <div class="commit-msg" :title="commit.commit.message">{{ commit.commit.message }}</div>
                 <div class="commit-meta">
                   <div class="commit-user">
-                    <el-avatar :size="16" :src="commit.author?.avatar_url" v-if="commit.author?.avatar_url" />
+                    <el-avatar :size="16" :src="formatImageUrl(commit.author?.avatar_url)" v-if="commit.author?.avatar_url" />
                     <span>{{ commit.commit.author.name }}</span>
                   </div>
                   <span class="commit-time">{{ new Date(commit.commit.author.date).toLocaleString() }}</span>
@@ -120,6 +120,7 @@ import { useLayoutStore } from '../stores/layout';
 import { usePlayerStore } from '../stores/player';
 import { Link, ArrowRight, StarFilled } from '@element-plus/icons-vue';
 import { getAboutPage, type AboutPage } from '../services/api';
+import { formatImageUrl } from '../utils/format';
 import axios from 'axios';
 import '@vueup/vue-quill/dist/vue-quill.snow.css'; // Import Quill styles for content rendering
 import 'github-markdown-css/github-markdown.css';

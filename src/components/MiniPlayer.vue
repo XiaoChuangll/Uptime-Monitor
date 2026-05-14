@@ -122,6 +122,7 @@
 import { computed, ref, watch, nextTick, onUnmounted, onMounted } from 'vue';
 import { usePlayerStore } from '../stores/player';
 import { useRouter, useRoute } from 'vue-router';
+import { formatImageUrl } from '../utils/format';
 import { VideoPlay, VideoPause, ArrowLeft, ArrowRight, Close, Headset, Loading, List } from '@element-plus/icons-vue';
 
 const store = usePlayerStore();
@@ -292,7 +293,8 @@ const handleProgressLeave = () => {
 const coverUrl = computed(() => {
   const t = store.currentTrack;
   if (!t) return '';
-  return t.picUrl || t.al?.picUrl || t.album?.picUrl || '';
+  const url = t.picUrl || t.al?.picUrl || t.album?.picUrl || '';
+  return formatImageUrl(url);
 });
 
 const artistName = computed(() => {

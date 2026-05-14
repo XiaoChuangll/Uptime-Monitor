@@ -62,7 +62,7 @@
                 <template v-if="playerStore.userProfile">
                   <el-dropdown trigger="click" @command="handleUserCommand">
                     <div class="user-avatar-wrapper">
-                      <el-avatar :size="30" :src="playerStore.userProfile.avatarUrl" />
+                      <el-avatar :size="30" :src="formatImageUrl(playerStore.userProfile.avatarUrl)" />
                       <span class="username">{{ playerStore.userProfile.nickname }}</span>
                     </div>
                     <template #dropdown>
@@ -126,7 +126,7 @@
         <!-- Album Grid -->
         <div v-else-if="searchType === 10" class="album-grid">
            <div v-for="album in searchResults" :key="album.id" class="album-card" @click="openAlbum(album)">
-              <el-image :src="album.picUrl" class="album-cover" lazy />
+              <el-image :src="formatImageUrl(album.picUrl)" class="album-cover" lazy />
               <div class="album-name" v-html="highlight(album.name)"></div>
               <div class="album-artist">{{ album.artist?.name }}</div>
            </div>
@@ -135,7 +135,7 @@
         <!-- Artist Grid -->
         <div v-else-if="searchType === 100" class="artist-grid">
            <div v-for="artist in searchResults" :key="artist.id" class="artist-card" @click="openArtist(artist)">
-              <el-image :src="artist.picUrl" class="artist-cover" lazy />
+              <el-image :src="formatImageUrl(artist.picUrl)" class="artist-cover" lazy />
               <div class="artist-name" v-html="highlight(artist.name)"></div>
            </div>
         </div>
@@ -198,7 +198,7 @@
                     <!-- Liked Music -->
                     <div class="personalized-card-v2 like-card-v2" @click="handleLikedMusic">
                         <div class="card-icon-wrapper like-icon-wrapper">
-                            <el-image v-if="likedPlaylistCover" :src="likedPlaylistCover" class="like-cover" fit="cover" />
+                            <el-image v-if="likedPlaylistCover" :src="formatImageUrl(likedPlaylistCover)" class="like-cover" fit="cover" />
                             <template v-else>
                                 <div class="like-bg-stack"></div>
                                 <el-icon :size="24" class="like-icon"><Star /></el-icon>
@@ -271,7 +271,7 @@
                     <div class="playlist-grid mobile-scroll">
                         <div v-for="list in radarPlaylists.slice(0, 7)" :key="list.id" class="playlist-card" @click="openPlaylist(list)">
                             <div class="cover-wrapper">
-                                <el-image :src="list.coverImgUrl || list.picUrl" class="playlist-cover" lazy />
+                                <el-image :src="formatImageUrl(list.coverImgUrl || list.picUrl)" class="playlist-cover" lazy />
                                 <div class="play-count"><el-icon><Headset /></el-icon> {{ formatCount(list.playCount) }}</div>
                             </div>
                             <div class="playlist-name">{{ list.name }}</div>
@@ -302,7 +302,7 @@
                     <div class="playlist-grid mobile-scroll">
                         <div v-for="list in recommendPlaylists.slice(0, 7)" :key="list.id" class="playlist-card" @click="openPlaylist(list)">
                             <div class="cover-wrapper">
-                                <el-image :src="list.picUrl || list.coverImgUrl" class="playlist-cover" lazy />
+                                <el-image :src="formatImageUrl(list.picUrl || list.coverImgUrl)" class="playlist-cover" lazy />
                                 <div class="play-count"><el-icon><Headset /></el-icon> {{ formatCount(list.playCount) }}</div>
                             </div>
                             <div class="playlist-name">{{ list.name }}</div>
@@ -348,7 +348,7 @@
                     <div class="rank-grid">
                         <div v-for="rank in topList.slice(0, 4)" :key="rank.id" class="rank-card" @click="openPlaylist(rank)">
                         <div class="rank-cover-wrapper">
-                            <el-image :src="rank.coverImgUrl" class="rank-cover" lazy />
+                            <el-image :src="formatImageUrl(rank.coverImgUrl)" class="rank-cover" lazy />
                         </div>
                         <div class="rank-songs">
                             <div v-for="(song, idx) in rank.tracks.slice(0, 3)" :key="idx" class="rank-song-row">
@@ -377,7 +377,7 @@
                         <div class="playlist-grid">
                             <div v-for="list in userPlaylists" :key="list.id" class="playlist-card" @click="openPlaylist(list)">
                                 <div class="cover-wrapper">
-                                    <el-image :src="list.coverImgUrl || list.picUrl" class="playlist-cover" lazy />
+                                    <el-image :src="formatImageUrl(list.coverImgUrl || list.picUrl)" class="playlist-cover" lazy />
                                     <div class="play-count"><el-icon><Headset /></el-icon> {{ formatCount(list.playCount) }}</div>
                                     <div v-if="playerStore.userProfile?.userId === list.userId" class="delete-btn-wrapper" @click.stop="handleDeletePlaylist(list)">
                                         <el-icon><Delete /></el-icon>
@@ -420,7 +420,7 @@
                         <div class="playlist-grid">
                             <div v-for="item in userPodcasts" :key="item.id" class="playlist-card" @click="openPodcast(item)">
                                 <div class="cover-wrapper">
-                                    <el-image :src="item.picUrl" class="playlist-cover" lazy />
+                                    <el-image :src="formatImageUrl(item.picUrl)" class="playlist-cover" lazy />
                                     <div class="play-count"><el-icon><Headset /></el-icon> {{ formatCount(item.subCount || 0) }}</div>
                                 </div>
                                 <div class="playlist-name">{{ item.name }}</div>
@@ -468,7 +468,7 @@
                     <div class="playlist-grid">
                         <div v-for="list in radarPlaylists" :key="list.id" class="playlist-card" @click="openPlaylist(list)">
                             <div class="cover-wrapper">
-                                <el-image :src="list.coverImgUrl || list.picUrl" class="playlist-cover" lazy />
+                                <el-image :src="formatImageUrl(list.coverImgUrl || list.picUrl)" class="playlist-cover" lazy />
                                 <div class="play-count"><el-icon><Headset /></el-icon> {{ formatCount(list.playCount) }}</div>
                             </div>
                             <div class="playlist-name">{{ list.name }}</div>
@@ -499,7 +499,7 @@
                     <div class="playlist-grid">
                         <div v-for="list in recommendPlaylists" :key="list.id" class="playlist-card" @click="openPlaylist(list)">
                             <div class="cover-wrapper">
-                                <el-image :src="list.picUrl || list.coverImgUrl" class="playlist-cover" lazy />
+                                <el-image :src="formatImageUrl(list.picUrl || list.coverImgUrl)" class="playlist-cover" lazy />
                                 <div class="play-count"><el-icon><Headset /></el-icon> {{ formatCount(list.playCount) }}</div>
                             </div>
                             <div class="playlist-name">{{ list.name }}</div>
@@ -530,7 +530,7 @@
                     <div class="playlist-grid">
                         <div v-for="rank in topList" :key="rank.id" class="playlist-card" @click="openPlaylist(rank)">
                         <div class="cover-wrapper">
-                            <el-image :src="rank.coverImgUrl" class="playlist-cover" lazy />
+                            <el-image :src="formatImageUrl(rank.coverImgUrl)" class="playlist-cover" lazy />
                             <div class="play-count"><el-icon><Headset /></el-icon> {{ formatCount(rank.playCount) }}</div>
                         </div>
                         <div class="playlist-name">{{ rank.name }}</div>
@@ -614,6 +614,7 @@ import { usePlayerStore } from '../stores/player';
 import { useLayoutStore } from '../stores/layout';
 import { proxyRequest, getMusicApis } from '../services/api';
 import { musicCache } from '../utils/cache'; // Import CacheManager
+import { formatImageUrl } from '../utils/format';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Loading, Headset, VideoPlay, Download, ArrowRight, Refresh, ArrowDown, Calendar, Star, CaretRight, Delete, VideoPause, Collection, User } from '@element-plus/icons-vue';
 
@@ -1131,12 +1132,17 @@ const fetchDiscovery = async (forceRefresh = false) => {
    // Check Cache
    if (!forceRefresh) {
        const cached = musicCache.get<any>(CACHE_KEY);
-       if (cached) {
-           console.log('[MusicView] Cache hit for discovery data');
+       if (cached && 
+           Array.isArray(cached.radar) && cached.radar.length > 0 &&
+           Array.isArray(cached.recommend) && cached.recommend.length > 0 &&
+           Array.isArray(cached.topList) && cached.topList.length > 0) {
+           console.log('[MusicView] Valid cache hit for discovery data');
            radarPlaylists.value = cached.radar;
            recommendPlaylists.value = cached.recommend;
            topList.value = cached.topList;
            return;
+       } else if (cached) {
+           console.log('[MusicView] Cache exists but is invalid or empty, fetching fresh data...');
        }
    }
    
@@ -1153,11 +1159,24 @@ const fetchDiscovery = async (forceRefresh = false) => {
            proxyRequest(`${baseUrl}/toplist/detail`, 'GET', {}, null)
        ]);
 
+       if (radarRes.data?.code && radarRes.data.code !== 200) {
+           console.error('Radar API error:', radarRes.data.msg);
+       }
+       if (recRes.data?.code && recRes.data.code !== 200) {
+           console.error('Recommended songs API error:', recRes.data.msg);
+       }
+       if (topRes.data?.code && topRes.data.code !== 200) {
+           console.error('Toplist API error:', topRes.data.msg);
+       }
+
        const radar = radarRes.data?.result || [];
        let recommend = [];
        
        // Try Highquality for recommended
        const hqRes = await proxyRequest(`${baseUrl}/top/playlist/highquality?limit=7`, 'GET', {}, null);
+       if (hqRes.data?.code && hqRes.data.code !== 200) {
+           console.error('Highquality playlist API error:', hqRes.data.msg);
+       }
        if (hqRes.data?.playlists) {
            recommend = hqRes.data.playlists;
        } else if (recRes.data?.result) {
@@ -1166,28 +1185,33 @@ const fetchDiscovery = async (forceRefresh = false) => {
 
        const tops = topRes.data?.list || [];
 
-       radarPlaylists.value = radar;
-       recommendPlaylists.value = recommend;
-       topList.value = tops;
-       
-       // Set Cache
-       musicCache.set(CACHE_KEY, {
-           radar,
-           recommend,
-           topList: tops
-       });
+       // Only update if we actually got some data
+       if (radar.length > 0 || recommend.length > 0 || tops.length > 0) {
+           radarPlaylists.value = radar;
+           recommendPlaylists.value = recommend;
+           topList.value = tops;
+           
+           // Set Cache only if data is somewhat valid
+           if (radar.length > 0 && recommend.length > 0 && tops.length > 0) {
+               musicCache.set(CACHE_KEY, {
+                   radar,
+                   recommend,
+                   topList: tops
+               });
+           }
+       } else {
+           throw new Error('No data received from discovery APIs');
+       }
 
    } catch (e) {
        console.error('Fetch discovery failed', e);
-       // Fallback to cache if refresh failed
-       if (forceRefresh) {
-           const cached = musicCache.get<any>(CACHE_KEY);
-           if (cached) {
-               radarPlaylists.value = cached.radar;
-               recommendPlaylists.value = cached.recommend;
-               topList.value = cached.topList;
-               ElMessage.warning('刷新失败，已恢复缓存数据');
-           }
+       // Fallback to cache if refresh failed and we have no data
+       const cached = musicCache.get<any>(CACHE_KEY);
+       if (cached && radarPlaylists.value.length === 0) {
+           radarPlaylists.value = cached.radar;
+           recommendPlaylists.value = cached.recommend;
+           topList.value = cached.topList;
+           ElMessage.warning('数据加载失败，已尝试恢复缓存');
        }
    } finally {
        radarLoading.value = false;
@@ -1217,6 +1241,11 @@ const fetchUserProfile = async () => {
       console.log('[MusicView] Requesting login status...');
       const res = await proxyRequest(`${baseUrl}/login/status?timestamp=${Date.now()}&cookie=${cookieEncoded}`, 'POST', headers, {});
       
+      if (res.data?.code && res.data.code !== 200) {
+          console.warn('[MusicView] Login status API error:', res.data.msg);
+          return;
+      }
+
       const data = res.data?.data || res.data;
       console.log('[MusicView] Login status data:', data);
 
@@ -1227,6 +1256,12 @@ const fetchUserProfile = async () => {
           console.log('[MusicView] Found account ID:', data.account.id, 'fetching detail...');
           // Fetch detail
           const detailRes = await proxyRequest(`${baseUrl}/user/detail?uid=${data.account.id}&cookie=${cookieEncoded}`, 'GET', headers, {});
+          
+          if (detailRes.data?.code && detailRes.data.code !== 200) {
+              console.warn('[MusicView] User detail API error:', detailRes.data.msg);
+              return;
+          }
+
           console.log('[MusicView] User detail res keys:', Object.keys(detailRes.data || {}));
             
             if (detailRes.data?.profile) {
@@ -1272,9 +1307,17 @@ const openLogin = async () => {
   try {
       const baseUrl = currentApi.value.baseUrl;
       const keyRes = await proxyRequest(`${baseUrl}/login/qr/key?timestamp=${Date.now()}`, 'GET', {}, null);
+      if (keyRes.data?.code && keyRes.data.code !== 200) {
+          loginStatus.value = `获取失败: ${keyRes.data.msg || '未知错误'}`;
+          return;
+      }
       if (keyRes.data?.data?.unikey) {
           unikey = keyRes.data.data.unikey;
           const createRes = await proxyRequest(`${baseUrl}/login/qr/create?key=${unikey}&qrimg=true&timestamp=${Date.now()}`, 'GET', {}, null);
+          if (createRes.data?.code && createRes.data.code !== 200) {
+              loginStatus.value = `获取失败: ${createRes.data.msg || '未知错误'}`;
+              return;
+          }
           if (createRes.data?.data?.qrimg) {
               qrImg.value = createRes.data.data.qrimg;
               loginStatus.value = '请使用网易云音乐APP扫码';
@@ -1283,6 +1326,7 @@ const openLogin = async () => {
       }
   } catch (e) {
       loginStatus.value = '获取失败，请重试';
+      console.error('获取二维码失败:', e);
   }
 };
 
@@ -1305,6 +1349,12 @@ const checkLoginStatus = () => {
        try {
            const baseUrl = currentApi.value.baseUrl;
            const res = await proxyRequest(`${baseUrl}/login/qr/check?key=${unikey}&timestamp=${Date.now()}`, 'GET', {}, null);
+           
+           if (res.data?.code && res.data.code !== 800 && res.data.code !== 801 && res.data.code !== 802 && res.data.code !== 803) {
+               console.warn('[MusicView] QR check API error:', res.data.msg);
+               // Don't return here, let the status update logic handle it
+           }
+
            const code = res.data?.code;
            if (code === 800) {
                loginStatus.value = '二维码已过期';
@@ -1352,6 +1402,13 @@ const executeSearch = async () => {
            `${baseUrl}/search?keywords=${encodeURIComponent(searchKeyword.value)}&type=${searchType.value}&limit=${pageSize.value}&offset=${offset}`, 
            'GET', {}, null
        );
+       
+       if (res.data?.code && res.data.code !== 200) {
+           ElMessage.error(`搜索失败: ${res.data.msg || '未知错误'}`);
+           searchResults.value = [];
+           total.value = 0;
+           return;
+       }
        
        if (searchType.value === 1 && res.data?.result?.songs) {
            // Fetch full song details to get correct cover images
@@ -1508,6 +1565,7 @@ const downloadSong = async (song: any) => {
 };
 
 // --- Helpers ---
+
 const getCover = (song: any) => {
     if (!song) return '';
     let url = song.al?.picUrl || 
@@ -1517,7 +1575,7 @@ const getCover = (song: any) => {
            song.artists?.[0]?.img1v1Url || 
            song.img1v1Url || 
            '';
-    return url ? url.replace(/^http:/, 'https:') : '';
+    return formatImageUrl(url);
 };
 const getArtistName = (song: any) => (song.ar || song.artists || []).map((a: any) => a.name).join(', ');
 const isVipSong = (song: any) => {

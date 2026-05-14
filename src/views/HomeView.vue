@@ -27,7 +27,7 @@
                 <h3 class="card-title">{{ card.title }}</h3>
               </div>
               <div class="card-content hover-effect" v-for="g in groupChats" :key="g.id">
-                <img v-if="g.avatar_url" :src="g.avatar_url" class="card-icon-img round" alt="Avatar" />
+                <img v-if="g.avatar_url" :src="formatImageUrl(g.avatar_url)" class="card-icon-img round" alt="Avatar" />
                 <el-icon v-else :size="24" class="card-icon"><User /></el-icon>
                 <a v-if="g.link" :href="g.link" target="_blank" class="card-text">{{ g.name }}</a>
                 <span v-else class="card-text">{{ g.name }}</span>
@@ -211,9 +211,22 @@
 import { onMounted, onUnmounted, ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useMonitorStore } from '../stores/monitor';
+import { formatImageUrl } from '../utils/format';
 import MonitorCard from '../components/MonitorCard.vue';
 import ActiveIncidents from '../components/ActiveIncidents.vue';
-import { Refresh, Filter, CaretBottom, Monitor, User, More, ArrowUp, ArrowDown } from '@element-plus/icons-vue';
+import { 
+  Monitor, 
+  CircleCheck, 
+  WarningFilled, 
+  Timer, 
+  Refresh, 
+  Filter, 
+  CaretBottom, 
+  ArrowDown, 
+  ArrowUp, 
+  User, 
+  More
+} from '@element-plus/icons-vue';
 import { getPublicFriendLinks, getPublicGroupChats, getPublicAnnouncements, getPublicSiteCards, getPublicApps, type FriendLink, type SiteCard, type AppItem } from '../services/admin';
 import { connectWS, onWS } from '../services/ws';
 
@@ -334,21 +347,31 @@ const favicon = (url: string) => {
 
 const linkIcon = (link: FriendLink) => {
   const u = typeof link.icon_url === 'string' ? link.icon_url.trim() : '';
-  return u || favicon(link.url);
+  const url = u || favicon(link.url);
+  return formatImageUrl(url);
 };
 
 const appIcon = (item: any) => {
-  if (item.icon_url) return item.icon_url;
-  const direct = (item as any).icon || (item as any).logo;
-  if (direct) return direct;
-  const link = (item as any).url || (item as any).link || (item as any).homepage;
-  if (!link) return null;
-  try {
-    const u = new URL(link);
-    return `${u.origin}/favicon.ico`;
-  } catch {
-    return null;
+  let url = null;
+  if (item.icon_url) {
+    url = item.icon_url;
+  } else {
+    const direct = (item as any).icon || (item as any).logo;
+    if (direct) {
+      url = direct;
+    } else {
+      const link = (item as any).url || (item as any).link || (item as any).homepage;
+      if (link) {
+        try {
+          const u = new URL(link);
+          url = `${u.origin}/favicon.ico`;
+        } catch {
+          url = null;
+        }
+      }
+    }
   }
+  return formatImageUrl(url);
 };
 
 const filter = ref<'all' | 'up' | 'warn' | 'down'>('all');
